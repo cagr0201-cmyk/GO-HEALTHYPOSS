@@ -1705,8 +1705,8 @@ function playOrderBeep() {
   try {
     const NOTES = {
       'A4': 440.00,
-      'Bb4': 466.16,
-      'C#5': 554.37,
+      'B4': 493.88,
+      'C5': 523.25,
       'D5': 587.33,
       'E5': 659.25,
       'F5': 698.46,
@@ -1714,27 +1714,42 @@ function playOrderBeep() {
       'A5': 880.00
     };
 
+    // Traditional Delilo melody - "Delilo delilo destane..."
     const halayMelody = [
+      // Verse 1
       { note: 'A4', beats: 0.5 },
-      { note: 'A4', beats: 0.5 },
-      { note: 'Bb4', beats: 0.5 },
-      { note: 'C#5', beats: 0.5 },
+      { note: 'B4', beats: 0.5 },
+      { note: 'C5', beats: 1.0 },
+      { note: 'B4', beats: 0.5 },
+      { note: 'C5', beats: 0.5 },
       { note: 'D5', beats: 1.0 },
-      { note: 'E5', beats: 0.5 },
-      { note: 'D5', beats: 0.5 },
-      
-      { note: 'C#5', beats: 0.5 },
-      { note: 'Bb4', beats: 0.5 },
+      { note: 'C5', beats: 0.5 },
+      { note: 'B4', beats: 0.5 },
       { note: 'A4', beats: 1.0 },
-      { note: 'Bb4', beats: 0.5 },
-      { note: 'C#5', beats: 0.5 },
+      { note: 'B4', beats: 0.5 },
+      { note: 'C5', beats: 0.5 },
+      { note: 'A4', beats: 1.0 },
+
+      // Verse 2 (repeat)
+      { note: 'A4', beats: 0.5 },
+      { note: 'B4', beats: 0.5 },
+      { note: 'C5', beats: 1.0 },
+      { note: 'B4', beats: 0.5 },
+      { note: 'C5', beats: 0.5 },
+      { note: 'D5', beats: 1.0 },
+      { note: 'C5', beats: 0.5 },
+      { note: 'B4', beats: 0.5 },
+      { note: 'A4', beats: 1.0 },
+      { note: 'B4', beats: 0.5 },
+      { note: 'C5', beats: 0.5 },
       { note: 'A4', beats: 1.0 }
     ];
 
     const beatDuration = 60 / 130; // 130 BPM
     const startTime = ctx.currentTime + 0.05;
 
-    for (let i = 0; i < 8; i++) {
+    // Rhythmic kick & snare pattern (modern halay) - 16 beats long
+    for (let i = 0; i < 16; i++) {
       const kickTime = startTime + i * beatDuration;
       playKick(ctx, kickTime);
       
