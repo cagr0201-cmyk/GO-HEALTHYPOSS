@@ -278,7 +278,7 @@ async function initDatabase() {
 
   // Seed default data
   const tablesCount = await get(`SELECT COUNT(*) as count FROM tables`);
-  if (tablesCount.count === 0) {
+  if (Number(tablesCount.count) === 0) {
     const defaultTables = [
       { id: 'T1', name: 'Masa 1', category: 'Salon', x: 15, y: 15, shape: 'round', status: 'free' },
       { id: 'T2', name: 'Masa 2', category: 'Salon', x: 45, y: 15, shape: 'round', status: 'free' },
@@ -303,7 +303,7 @@ async function initDatabase() {
   }
 
   const menuCount = await get(`SELECT COUNT(*) as count FROM menu_items`);
-  if (menuCount.count === 0) {
+  if (Number(menuCount.count) === 0) {
     const defaultMenuItems = [
       { id: 'avokado-ekmek', categoryId: 'kebap-izgara', name: 'Avokado Ekmek', price: 290, description: 'Ekşi mayalı ekmek, ezilmiş avokado, poşe yumurta, füme hindi ve mikro yeşillikler.', image: 'https://images.unsplash.com/photo-1541532713592-79a0317b6b77?auto=format&fit=crop&w=400&q=80', popular: 1, options: ['Yumurtalı', 'Yumurtasız'] },
       { id: 'go-healthy-omlet', categoryId: 'kebap-izgara', name: 'Go Healthy Omlet', price: 310, description: 'Keçi peynirli ve ıspanaklı omlet, yulaf krebi, granola ve taze böğürtlenler.', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80', popular: 1, options: [] },
@@ -327,14 +327,14 @@ async function initDatabase() {
   }
 
   const stocksCount = await get(`SELECT COUNT(*) as count FROM stocks`);
-  if (stocksCount.count === 0) {
+  if (Number(stocksCount.count) === 0) {
     for (const s of INITIAL_STOCKS) {
       await run(`INSERT INTO stocks VALUES (?, ?, ?, ?, ?)`, [s.id, s.name, s.quantity, s.unit, s.minLimit]);
     }
   }
 
   const staffCount = await get(`SELECT COUNT(*) as count FROM staff`);
-  if (staffCount.count === 0) {
+  if (Number(staffCount.count) === 0) {
     const defaultStaff = [
       { id: 'ahmet', name: 'Ahmet Yılmaz', role: 'Şef Garson', code: '1111', status: 'in', shiftStart: new Date().toISOString() },
       { id: 'merve', name: 'Merve Kaya', role: 'Garson', code: '2222', status: 'out', shiftStart: null },
@@ -347,7 +347,7 @@ async function initDatabase() {
   }
 
   const salesHistoryCount = await get(`SELECT COUNT(*) as count FROM sales_history`);
-  if (salesHistoryCount.count === 0) {
+  if (Number(salesHistoryCount.count) === 0) {
     await seedHistoryInSQLite();
   }
 }
