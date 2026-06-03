@@ -1836,24 +1836,37 @@ function triggerIncomingDeliveryClient(channelId, order) {
 }
 
 async function acceptDeliveryOrder() {
-  if (!currentPendingDeliveryOrder) return;
-  stopTurkishMarch();
-  
-  const orderId = currentPendingDeliveryOrder.orderId;
-  const channel = currentPendingDeliveryOrder.channel;
-  const channelName = currentPendingDeliveryOrder.channelName;
-  const items = currentPendingDeliveryOrder.items;
-
-  let orderNote = `${channelName} Siparişi`;
-  let kitchenNote = 'Otomatik Entegre';
-
-  if (currentPendingDeliveryOrder.customerName) {
-    const details = `Müşteri: ${currentPendingDeliveryOrder.customerName} | Tel: ${currentPendingDeliveryOrder.customerPhone} | Adres: ${currentPendingDeliveryOrder.customerAddress || 'Gel-Al'}`;
-    orderNote = details;
-    kitchenNote = details;
-  }
-
   try {
+    if (!currentPendingDeliveryOrder) {
+      alert("Hata: currentPendingDeliveryOrder bulunamadı (null veya undefined)!");
+      return;
+    }
+    stopTurkishMarch();
+    
+    const orderId = currentPendingDeliveryOrder.orderId;
+    const channel = currentPendingDeliveryOrder.channel;
+    const channelName = currentPendingDeliveryOrder.channelName;
+    const items = currentPendingDeliveryOrder.items;
+
+    if (!items || !Array.isArray(items)) {
+      alert("Hata: Siparişe ait ürün listesi alınamadı!");
+      return;
+    }
+
+    let orderNote = `${channelName} Siparişi`;
+    let kitchenNote = 'Otomatik Entegre';
+
+    if (currentPendingDeliveryOrder.customerName) {
+      const details = `Müşteri: ${currentPendingDeliveryOrder.customerName} | Tel: ${currentPendingDeliveryOrder.customerPhone} | Adres: ${currentPendingDeliveryOrder.customerAddress || 'Gel-Al'}`;
+      orderNote = details;
+      kitchenNote = details;
+    }
+
+    if (!AppState.menuItems || !Array.isArray(AppState.menuItems)) {
+      alert("Hata: AppState.menuItems yüklü değil veya dizi değil!");
+      return;
+    }
+
     for (const i of items) {
       const menuItem = AppState.menuItems.find(mi => mi.name === i.name);
       if (menuItem) {
@@ -1885,7 +1898,8 @@ async function acceptDeliveryOrder() {
     });
 
     if (!resOrders.ok) {
-      throw new Error('Sipariş sunucuda oluşturulamadı.');
+      const errText = await resOrders.text();
+      throw new Error(`Sipariş kaydedilemedi. Sunucu Hatası: ${resOrders.status} - ${errText}`);
     }
 
     const resTicket = await fetch('/api/kitchen/ticket', {
@@ -1907,7 +1921,8 @@ async function acceptDeliveryOrder() {
     });
 
     if (!resTicket.ok) {
-      throw new Error('Mutfak bileti sunucuda oluşturulamadı.');
+      const errText = await resTicket.text();
+      throw new Error(`Mutfak bileti oluşturulamadı. Sunucu Hatası: ${resTicket.status} - ${errText}`);
     }
 
     const badge = document.getElementById(`delivery-${channel}`);
@@ -1920,6 +1935,7 @@ async function acceptDeliveryOrder() {
     currentPendingDeliveryOrder = null;
   } catch (err) {
     console.error(err);
+    alert('Sipariş onaylanırken hata oluştu: ' + err.message);
     showToast('Sipariş onaylanırken hata oluştu: ' + err.message, 'error');
   }
 }
