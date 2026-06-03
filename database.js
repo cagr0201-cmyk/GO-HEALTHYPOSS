@@ -31,6 +31,27 @@ function translateSql(sql) {
   return converted;
 }
 
+const KEY_MAPPING = {
+  categoryid: 'categoryId',
+  minlimit: 'minLimit',
+  tableid: 'tableId',
+  ordertype: 'orderType',
+  waiterid: 'waiterId',
+  tablename: 'tableName',
+  paymentmethod: 'paymentMethod',
+  shiftstart: 'shiftStart'
+};
+
+function normalizeRow(row) {
+  if (!row) return row;
+  const normalized = {};
+  for (const key of Object.keys(row)) {
+    const targetKey = KEY_MAPPING[key] || key;
+    normalized[targetKey] = row[key];
+  }
+  return normalized;
+}
+
 // Helper Promise wrappers that transparently choose SQLite or PostgreSQL
 const run = (sql, params = []) => new Promise((resolve, reject) => {
   const finalSql = translateSql(sql);
@@ -52,7 +73,7 @@ const get = (sql, params = []) => new Promise((resolve, reject) => {
   if (usePostgres) {
     pgPool.query(finalSql, params, (err, res) => {
       if (err) reject(err);
-      else resolve(res.rows[0]);
+      else resolve(normalizeRow(res.rows[0]));
     });
   } else {
     sqliteDb.get(finalSql, params, (err, row) => {
@@ -67,7 +88,7 @@ const all = (sql, params = []) => new Promise((resolve, reject) => {
   if (usePostgres) {
     pgPool.query(finalSql, params, (err, res) => {
       if (err) reject(err);
-      else resolve(res.rows);
+      else resolve(res.rows.map(normalizeRow));
     });
   } else {
     sqliteDb.all(finalSql, params, (err, rows) => {
