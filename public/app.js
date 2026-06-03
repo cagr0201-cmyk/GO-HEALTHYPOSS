@@ -82,10 +82,12 @@ socket.on('sync_state', (data) => {
 // Live KDS socket notification listeners
 socket.on('new_kitchen_ticket', (data) => {
   showToast(`Yeni Mutfak Siparişi! ${data.tableName} siparişi iletildi.`, 'success');
+  playOrderBeep();
 });
 
 socket.on('kitchen_ticket_ready', (data) => {
   showToast(`${data.tableName} siparişi hazır! Servis edebilirsiniz.`, 'info');
+  playOrderBeep();
 });
 
 // Live delivery notification listener
@@ -1591,6 +1593,62 @@ function renderDeliveryOrderMap(lat, lng, customerName) {
     deliveryMarker = L.marker([lat, lng]).addTo(deliveryMap)
       .bindPopup(`<b>${customerName}</b>`).openPopup();
   }, 300);
+}
+
+// Global shared AudioContext initialized/unlocked via user gesture
+document.addEventListener('click', () => {
+  if (!window.appAudioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) {
+      window.appAudioCtx = new AudioContext();
+      console.log("Audio Context initialized via user gesture.");
+    }
+  } else if (window.appAudioCtx.state === 'suspended') {
+    window.appAudioCtx.resume();
+  }
+}, { once: false });
+
+function playOrderBeep() {
+  let ctx = window.appAudioCtx;
+  if (!ctx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    ctx = new AudioContext();
+    window.appAudioCtx = ctx;
+  }
+  
+  if (ctx.state === 'suspended') {
+    ctx.resume();
+  }
+  
+  try {
+    // Pleasant synthesized double-tone notification beep (C5 then E5)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+    gain1.gain.setValueAtTime(0, ctx.currentTime);
+    gain1.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.3);
+    
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(659.25, ctx.currentTime + 0.15); // E5
+    gain2.gain.setValueAtTime(0, ctx.currentTime + 0.15);
+    gain2.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.2);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(ctx.currentTime + 0.15);
+    osc2.stop(ctx.currentTime + 0.45);
+  } catch (err) {
+    console.error("Failed to play order beep:", err);
+  }
 }
 
 function playTurkishMarch() {
