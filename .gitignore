@@ -1,0 +1,8 @@
+node_modules/
+node-v20.11.0-darwin-arm64/
+pos.db
+pos.db-journal
+ngrok
+.DS_Store
+*.log
+.env

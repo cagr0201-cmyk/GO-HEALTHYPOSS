@@ -1,0 +1,20 @@
+{
+  "name": "aura-pos",
+  "version": "1.0.0",
+  "description": "Aura POS - Restaurant Management POS System powered by Kardo POS infrastructure",
+  "main": "main.js",
+  "scripts": {
+    "start": "node server.js",
+    "desktop": "electron ."
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "isomorphic-git": "^1.38.4",
+    "pg": "^8.11.5",
+    "socket.io": "^4.7.5",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "electron": "^30.0.9"
+  }
+}

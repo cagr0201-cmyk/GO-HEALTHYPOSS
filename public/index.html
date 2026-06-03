@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Go Healthy POS (Powered by Kardo POS Infrastructure)</title>
+  <!-- CSS Dosyası -->
+  <link rel="stylesheet" href="styles.css">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Leaflet Map library -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Socket.io Client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- 1. SOL NAVİGASYON PANELİ (SIDEBAR) -->
+    <aside class="sidebar">
+      <div class="brand" onclick="switchScreen('tables')">
+        GH
+      </div>
+      
+      <nav class="nav-menu">
+        <div class="nav-item active" id="nav-tables" onclick="switchScreen('tables')" title="Masa Haritası">
+          <i data-lucide="layout-grid"></i>
+          <span>Masalar</span>
+        </div>
+        <div class="nav-item" id="nav-pos" onclick="switchScreen('pos')" title="POS Sipariş">
+          <i data-lucide="shopping-cart"></i>
+          <span>POS</span>
+        </div>
+        <div class="nav-item" id="nav-kitchen" onclick="switchScreen('kitchen')" title="Mutfak Monitorü">
+          <i data-lucide="chef-hat"></i>
+          <span>Mutfak</span>
+        </div>
+        <div class="nav-item" id="nav-dashboard" onclick="switchScreen('dashboard')" title="Dashboard & Raporlar">
+          <i data-lucide="trending-up"></i>
+          <span>Analiz</span>
+        </div>
+        <div class="nav-item" id="nav-settings" onclick="switchScreen('settings')" title="Ayarlar">
+          <i data-lucide="settings"></i>
+          <span>Ayarlar</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-avatar" id="sidebar-staff-avatar" onclick="openStaffPINModal()" title="Kullanıcı Değiştir / İK Girişi">S</div>
+      </div>
+    </aside>
+
+    <!-- 2. ANA İÇERİK ALANI -->
+    <main class="main-content">
+      
+      <!-- ÜST HEADER -->
+      <header class="top-header">
+        <div class="header-title">
+          <h1 id="header-main-title">Masa Haritası</h1>
+          <p id="header-sub-title">Restoran yerleşim ve sipariş kontrolü</p>
+        </div>
+        
+        <div class="header-actions">
+          <div id="active-staff-badge" style="background: rgba(139,92,246,0.15); border: 1px solid var(--accent-purple); color: var(--accent-purple); padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600;">
+            Kasiyer: Elif (Mesaide değil)
+          </div>
+          <div class="time-box">
+            <i data-lucide="clock"></i>
+            <span id="current-time">00:00:00</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- PAKET SERVİS ENTEGRASYON BARI -->
+      <div class="delivery-aggregator-bar" id="delivery-aggregator-bar">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-right: 10px; display: flex; align-items: center; gap: 4px;">
+          <i data-lucide="smartphone-charging" style="width: 14px; height: 14px;"></i> Paket Servis Entegrasyonları:
+        </div>
+        <div class="delivery-channel-badge channel-yemeksepeti" id="delivery-yemeksepeti" onclick="triggerIncomingDelivery('yemeksepeti')">
+          <span class="dot"></span> <span>Yemeksepeti</span>
+        </div>
+        <div class="delivery-channel-badge channel-getir" id="delivery-getir" onclick="triggerIncomingDelivery('getir')">
+          <span class="dot"></span> <span>Getir Yemek</span>
+        </div>
+        <div class="delivery-channel-badge channel-trendyol" id="delivery-trendyol" onclick="triggerIncomingDelivery('trendyol')">
+          <span class="dot"></span> <span>Trendyol Yemek</span>
+        </div>
+        <div class="delivery-channel-badge channel-migros" id="delivery-migros" onclick="triggerIncomingDelivery('migros')">
+          <span class="dot"></span> <span>Migros Yemek</span>
+        </div>
+        <div class="delivery-channel-badge channel-delivery" id="delivery-delivery" style="border-color: rgba(0, 242, 254, 0.2); color: var(--accent-cyan);" onclick="triggerIncomingDelivery('delivery')">
+          <span>Online Paket</span>
+        </div>
+        <div class="delivery-channel-badge channel-takeaway" id="delivery-takeaway" style="border-color: rgba(212, 175, 55, 0.2); color: var(--accent-gold);" onclick="triggerIncomingDelivery('takeaway')">
+          <span>Online Gel-Al</span>
+        </div>
+      </div>
+
+      <!-- --- MODÜLER EKRANLAR (SCREENS) --- -->
+
+      <!-- EKRAN 1: MASA HARİTASI -->
+      <section id="screen-tables" class="screen active">
+        <div class="tables-layout" style="display: grid; grid-template-columns: 1fr 280px; gap: 20px; height: calc(100vh - 170px);">
+          
+          <div style="display: flex; flex-direction: column; height: 100%;">
+            <div class="floor-selector" id="floor-selector-container" style="margin-bottom: 12px;">
+              <!-- Dinamik olarak JS tarafından doldurulacak -->
+            </div>
+
+            <div class="table-map-area" id="table-map-area" style="flex: 1; height: auto;">
+              <!-- Masalar mutlak koordinatlarla JS tarafından yerleştirilecek -->
+            </div>
+            
+            <div class="map-legend" style="margin-top: 10px;">
+              <div class="legend-item">
+                <span class="legend-dot free"></span>
+                <span>Boş Masalar</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot busy"></span>
+                <span>Dolu Masalar</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot bill"></span>
+                <span>Hesap İstendi</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Sağ Panel: Aktif Paket ve Gel-Al Siparişleri -->
+          <div class="active-deliveries-panel" style="background: var(--bg-surface-solid); border: 1px solid var(--border-light); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; height: 100%; box-shadow: var(--shadow-main);">
+            <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; color: var(--accent-pink);">
+              <i data-lucide="truck" style="width: 16px; height: 16px;"></i> Aktif Dış Siparişler
+            </h3>
+            <div id="active-deliveries-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+              <!-- Aktif dış siparişler dinamik doldurulacak -->
+            </div>
+          </div>
+          
+        </div>
+      </section>
+
+      <!-- EKRAN 2: POS SİPARİŞ EKRANI -->
+      <section id="screen-pos" class="screen">
+        <div class="pos-layout">
+          
+          <!-- Sol Kısım: Arama, Kategoriler ve Menü Grid -->
+          <div class="pos-left">
+            <div class="pos-header-actions">
+              <div class="search-bar">
+                <i data-lucide="search"></i>
+                <input type="text" id="menu-search-input" placeholder="Ürün veya kategori ara..." oninput="handleMenuSearch()">
+              </div>
+              <button class="floor-tab" onclick="switchScreen('tables')" style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Masalara Dön
+              </button>
+            </div>
+
+            <div class="categories-container" id="categories-tabs-container">
+              <!-- Kategoriler dinamik doldurulacak -->
+            </div>
+
+            <div class="menu-items-grid" id="menu-items-grid">
+              <!-- Ürün kartları dinamik doldurulacak -->
+            </div>
+          </div>
+
+          <!-- Sağ Kısım: Sipariş Özeti ve Aksiyonlar -->
+          <div class="pos-right-cart">
+            <div class="cart-header">
+              <div class="cart-header-title">
+                <h2>Sipariş Listesi</h2>
+                <span class="cart-table-badge" id="cart-table-label">Hızlı Satış</span>
+              </div>
+              <div class="cart-options">
+                <button class="cart-type-btn active" id="btn-dine-in" onclick="setOrderType('dine-in')">Masaya Servis</button>
+                <button class="cart-type-btn" id="btn-takeaway" onclick="setOrderType('takeaway')">Paket Servis</button>
+                <button class="cart-type-btn" id="btn-delivery" onclick="setOrderType('delivery')">Adrese Gönder</button>
+              </div>
+            </div>
+
+            <!-- Sepetteki Ürünler -->
+            <div class="cart-items-list" id="cart-items-list">
+              <!-- Dinamik doldurulacak -->
+            </div>
+
+            <!-- Toplam Bilgiler ve Hesaplama -->
+            <div class="cart-summary">
+              <div class="staff-selector-row">
+                <span>Hizmet Veren Garson:</span>
+                <select class="staff-select" id="cart-waiter-select">
+                  <!-- JS ile garsonlar listelenecek -->
+                </select>
+              </div>
+              <div class="summary-line">
+                <span>Ara Toplam</span>
+                <span id="summary-subtotal">0.00 ₺</span>
+              </div>
+              <div class="summary-line discount">
+                <span>İndirim Oranı</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <input type="number" id="summary-discount-input" value="0" min="0" max="100" style="width: 45px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); border-radius: 4px; padding: 2px 4px; text-align: center;" onchange="recalculateTotals()">
+                  <span>%</span>
+                </div>
+              </div>
+              <div class="summary-line">
+                <span>KDV (%10)</span>
+                <span id="summary-tax">0.00 ₺</span>
+              </div>
+              <div class="summary-line total">
+                <span>Genel Toplam</span>
+                <span class="total-price" id="summary-total">0.00 ₺</span>
+              </div>
+            </div>
+
+            <!-- Sipariş / Ödeme Aksiyon Butonları -->
+            <div class="cart-actions">
+              <button class="cart-btn cart-btn-kitchen" id="btn-send-kitchen" onclick="sendActiveOrderToKitchen()">
+                <i data-lucide="chef-hat"></i> Mutfak
+              </button>
+              <button class="cart-btn cart-btn-pay" id="btn-checkout" onclick="openCheckoutModal()">
+                <i data-lucide="credit-card"></i> Ödeme Al
+              </button>
+            </div>
+            
+            <div class="cart-actions-bottom-row">
+              <button class="cart-btn cart-btn-split" id="btn-split-bill" onclick="openSplitBillModal()">
+                <i data-lucide="scissors"></i> Hesabı Böl
+              </button>
+              <button class="cart-btn cart-btn-merge" id="btn-merge-tables" onclick="openMergeTablesModal()">
+                <i data-lucide="git-merge"></i> Birleştir
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- EKRAN 3: MUTFAK EKLEME / KDS EKRANI -->
+      <section id="screen-kitchen" class="screen">
+        <div class="kitchen-container" id="kitchen-cards-container">
+          <!-- Aktif mutfak siparişleri kartlar halinde listelenecek -->
+        </div>
+      </section>
+
+      <!-- EKRAN 4: DASHBOARD / ANALİTİK EKRANI -->
+      <section id="screen-dashboard" class="screen">
+        
+        <!-- ÜST TARİH/PERİYOT FİLTRE BARI -->
+        <div class="dashboard-filter-bar">
+          <div class="filter-period-buttons">
+            <button class="period-btn active" id="period-today" onclick="changeReportPeriod('today')">Bugün</button>
+            <button class="period-btn" id="period-yesterday" onclick="changeReportPeriod('yesterday')">Dün</button>
+            <button class="period-btn" id="period-week" onclick="changeReportPeriod('week')">Son 7 Gün</button>
+            <button class="period-btn" id="period-month" onclick="changeReportPeriod('month')">Bu Ay</button>
+            <button class="period-btn" id="period-year" onclick="changeReportPeriod('year')">Bu Yıl (Yıllık)</button>
+          </div>
+          
+          <div class="custom-date-inputs">
+            <span>Özel Aralık:</span>
+            <input type="date" id="filter-start-date" onchange="handleCustomDateChange()">
+            <span>-</span>
+            <input type="date" id="filter-end-date" onchange="handleCustomDateChange()">
+          </div>
+        </div>
+
+        <!-- ÜST METRİKLER -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-info">
+              <h3 id="revenue-metric-title">Bugünkü Toplam Ciro</h3>
+              <div class="metric-value" id="metric-revenue">0.00 ₺</div>
+            </div>
+            <div class="metric-icon">
+              <i data-lucide="turkish-lira"></i>
+            </div>
+          </div>
+          
+          <div class="metric-card pink">
+            <div class="metric-info">
+              <h3>Toplam Sipariş</h3>
+              <div class="metric-value" id="metric-orders">0</div>
+            </div>
+            <div class="metric-icon">
+              <i data-lucide="shopping-bag"></i>
+            </div>
+          </div>
+
+          <div class="metric-card cyan">
+            <div class="metric-info">
+              <h3>Ortalama Adisyon</h3>
+              <div class="metric-value" id="metric-avg-check">0.00 ₺</div>
+            </div>
+            <div class="metric-icon">
+              <i data-lucide="calculator"></i>
+            </div>
+          </div>
+
+          <div class="metric-card gold">
+            <div class="metric-info">
+              <h3>Masa Doluluk Oranı</h3>
+              <div class="metric-value" id="metric-occupancy">0%</div>
+            </div>
+            <div class="metric-icon">
+              <i data-lucide="users"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- DASHBOARD ALT SEKMELERİ -->
+        <div class="dashboard-tabs">
+          <span class="dashboard-tab-item active" id="tab-db-charts" onclick="switchDashboardTab('charts')">Ciro & Satış Raporu</span>
+          <span class="dashboard-tab-item" id="tab-db-ledger" onclick="switchDashboardTab('ledger')">Geçmiş Adisyon Defteri</span>
+        </div>
+
+        <!-- SEÇENEK 1: GRAFİKLER VE CIRO ANALİZİ -->
+        <div id="db-view-charts">
+          <div class="dashboard-charts-row">
+            
+            <!-- Satış Trendi Grafiği -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <h2 id="trends-chart-title">Bugünün Satış Dağılımı (Saatlik)</h2>
+              </div>
+              <div class="chart-body">
+                <canvas id="salesTrendsChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Kategori Paylaşımı Grafiği -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <h2>Kategori Dağılımı</h2>
+              </div>
+              <div class="chart-body">
+                <canvas id="categoryShareChart"></canvas>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- En Çok Satan Ürünler Tablosu -->
+          <div class="sales-rank-card">
+            <div class="chart-header">
+              <h2>En Çok Tercih Edilen Ürünler (Top 5)</h2>
+            </div>
+            <div class="rank-list" id="dashboard-rank-list">
+              <!-- Dinamik doldurulacak -->
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇENEK 2: ADİSYON DEFTERİ (LEDGER) -->
+        <div id="db-view-ledger" style="display: none;">
+          <div class="ledger-container">
+            <div class="ledger-header">
+              <div class="ledger-search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="ledger-search-input" placeholder="Fiş no veya garson ara..." oninput="renderLedgerTable()">
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <select class="staff-select" id="ledger-type-filter" onchange="renderLedgerTable()" style="max-width: 140px; padding: 8px;">
+                  <option value="all">Tüm Hizmetler</option>
+                  <option value="dine-in">Masaya Servis</option>
+                  <option value="takeaway">Paket Servis</option>
+                  <option value="delivery">Adrese Paket</option>
+                </select>
+                <select class="staff-select" id="ledger-pay-filter" onchange="renderLedgerTable()" style="max-width: 140px; padding: 8px;">
+                  <option value="all">Tüm Ödemeler</option>
+                  <option value="CASH">Nakit</option>
+                  <option value="CARD">Kredi Kartı</option>
+                </select>
+                <button class="floor-tab" onclick="exportLedgerToCSV()" style="padding: 8px 16px; font-size: 13px; display: flex; align-items: center; gap: 6px; background: var(--accent-cyan); border-color: var(--accent-cyan);">
+                  <i data-lucide="download" style="width: 16px; height: 16px;"></i> Excel (CSV)
+                </button>
+              </div>
+            </div>
+
+            <div class="ledger-table-wrapper">
+              <table class="ledger-table">
+                <thead>
+                  <tr>
+                    <th>Fiş / TX ID</th>
+                    <th>Tarih & Saat</th>
+                    <th>Masa / Kanal</th>
+                    <th>Personel</th>
+                    <th>Hizmet Tipi</th>
+                    <th>Ödeme Tipi</th>
+                    <th>İndirim</th>
+                    <th>Toplam Tutar</th>
+                    <th>Aksiyon</th>
+                  </tr>
+                </thead>
+                <tbody id="ledger-table-body">
+                  <!-- Dinamik geçmiş faturalar listesi -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- EKRAN 5: AYARLAR VE YÖNETİM EKRANI -->
+      <section id="screen-settings" class="screen">
+        <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+          
+          <!-- HAMMADDE STOK İZLEME PANELİ -->
+          <div class="chart-card">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <h2>Hammadde Stok Kontrol Paneli</h2>
+              <button class="floor-tab" onclick="refillAllStocks()" style="padding: 6px 14px; font-size: 12px; background: var(--accent-purple); border-color: var(--accent-purple);">Stokları Tazele</button>
+            </div>
+            <div style="max-height: 300px; overflow-y: auto; margin-top: 16px; border: 1px solid var(--border-light); border-radius: 12px; padding: 12px; background: rgba(0,0,0,0.2);">
+              <div class="stock-grid-table">
+                <div class="stock-header-cell">Malzeme Adı</div>
+                <div class="stock-header-cell">Kalan Miktar</div>
+                <div class="stock-header-cell">Birim</div>
+                <div class="stock-header-cell">Stok Seviyesi (Doluluk)</div>
+              </div>
+              <div id="settings-stock-list" style="margin-top: 10px;">
+                <!-- Dinamik stok satırları -->
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h2>Menü Yönetimi (Yeni Ürün Ekle)</h2>
+            </div>
+            <form id="settings-add-item-form" onsubmit="handleSettingsAddItem(event)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
+              <div>
+                <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Ürün Adı</label>
+                <input type="text" id="s-item-name" required placeholder="Örn: Beyti Kebap" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; color: white;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Fiyat (₺)</label>
+                <input type="number" id="s-item-price" required min="1" placeholder="Örn: 350" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; color: white;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Kategori</label>
+                <select id="s-item-category" required style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; color: white;">
+                  <!-- Dinamik Kategoriler -->
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Resim Bağlantısı (URL)</label>
+                <input type="url" id="s-item-image" placeholder="Boş bırakılabilir" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; color: white;">
+              </div>
+              <div style="grid-column: span 2;">
+                <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Açıklama</label>
+                <textarea id="s-item-desc" placeholder="Özel soslu kuzu sarma, pilav..." style="width: 100%; height: 70px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; color: white; resize: none;"></textarea>
+              </div>
+              <div style="grid-column: span 2; display: flex; justify-content: flex-end;">
+                <button type="submit" class="modal-btn modal-btn-confirm" style="max-width: 180px;">Menüye Ürün Ekle</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h2>Masa Ekle / Kaldır</h2>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+              <input type="text" id="s-table-name" placeholder="Masa Adı (Örn: Masa 15)" style="flex: 1; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; color: white;">
+              <select id="s-table-floor" style="width: 150px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; color: white;">
+                <option value="Salon">Salon</option>
+                <option value="Teras">Teras</option>
+                <option value="VIP">VIP</option>
+              </select>
+              <button class="modal-btn modal-btn-confirm" onclick="handleSettingsAddTable()" style="width: 140px;">Masa Ekle</button>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h2>Masa QR Etiketleri</h2>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 10px 0 16px;">Masaların üzerine yapıştırmak için karekodlu, şık ve basıma uygun sipariş etiketleri oluşturun.</p>
+            <button class="modal-btn modal-btn-confirm" onclick="openQRPrintLayout()" style="max-width: 240px; background: var(--accent-cyan);">QR Etiketleri Yazdır</button>
+          </div>
+
+          <!-- SUNUCU BAĞLANTI AYARLARI KARTI -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h2>Sunucu Bağlantı Bilgileri</h2>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 10px 0 16px;">
+              Garson telefonları ve diğer POS cihazlarından bu sunucuya bağlanmak için aşağıdaki adresi tarayıcınıza yazın veya karekodu okutun:
+            </p>
+            <div style="display: flex; gap: 20px; align-items: center; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 12px; border: 1px solid var(--border-light);">
+              <div id="server-connection-qr" style="background: white; padding: 10px; border-radius: 8px; width: 130px; height: 130px; display: flex; align-items: center; justify-content: center;">
+                <!-- QR Kod Görseli buraya yerleşecek -->
+              </div>
+              <div style="flex: 1;">
+                <div style="font-size: 14px; font-weight: 700; color: var(--accent-cyan); margin-bottom: 6px;" id="server-ip-text">Yükleniyor...</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">
+                  Ağ Adı (Wi-Fi): Aynı modeme/ağa bağlı olduğunuzdan emin olun.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h2>Veri Sıfırlama</h2>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 10px 0 16px;">Tüm sipariş verilerini sıfırlayarak sistemi varsayılan ayarlara döndürün.</p>
+            <button class="modal-btn modal-btn-cancel" onclick="resetSystemData()" style="color: var(--status-busy); border-color: rgba(239, 68, 68, 0.4); max-width: 200px;">Fabrika Ayarlarına Dön</button>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- --- MODALLAR --- -->
+
+  <!-- YÜZEN QR BUTONU VE MÜŞTERİ QR MENÜ TELEFON SİMÜLATÖRÜ MODALI -->
+  <div class="floating-qr-trigger" onclick="openQRMenuSimulator()" title="Müşteri Masa QR Menü Sipariş Simülatörü">
+    <i data-lucide="qr-code"></i>
+  </div>
+
+  <div class="modal-overlay" id="modal-qr-simulator">
+    <div class="qr-modal-wrapper">
+      <div class="qr-phone-notch"><div class="qr-phone-speaker"></div></div>
+      
+      <div class="qr-phone-screen">
+        <div class="qr-phone-header">
+          <span style="font-size: 11px; font-weight: 700; color: var(--accent-cyan);">GO HEALTHY QR</span>
+          <select id="qr-table-select" onchange="changeQRTable()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border-light); border-radius: 6px; padding: 2px 6px; font-size: 10px; color: white;">
+            <!-- Masalar dinamik doldurulacak -->
+          </select>
+          <span class="modal-close-btn" onclick="closeModal('modal-qr-simulator')" style="font-size: 12px; color: var(--text-muted);">Kapat</span>
+        </div>
+
+        <div class="qr-phone-content">
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-light); border-radius: 12px; padding: 8px 12px; font-size: 11px; text-align: center;">
+            Karekodu tarattınız! Siparişleriniz doğrudan kasaya ve mutfağa iletilecektir.
+          </div>
+          <div class="options-group-title" style="margin-bottom:0;">Fit & Sağlıklı Menü</div>
+          <div id="qr-phone-menu-list" style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- QR menü ürünleri -->
+          </div>
+        </div>
+
+        <div class="qr-phone-footer-cart">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 10px; color: var(--text-secondary);">Müşteri Sepeti</span>
+            <span id="qr-cart-total" style="font-size: 14px; font-weight: 700; color: var(--status-free);">0.00 ₺</span>
+          </div>
+          <button id="qr-send-order-btn" onclick="sendQRMenuOrder()" style="background: var(--status-free); color: white; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 600;" disabled>Siparişi Gönder</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 1: ÜRÜN ÖZELLEŞTİRME VE NOT MODALI -->
+  <div class="modal-overlay" id="modal-customise">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="customise-item-title">Ürün Detayı</h3>
+        <span class="modal-close-btn" onclick="closeModal('modal-customise')">
+          <i data-lucide="x"></i>
+        </span>
+      </div>
+      <div class="modal-body">
+        <div class="options-group-title">Tercih / Pişme Seçeneği</div>
+        <div class="options-list" id="customise-options-list">
+          <!-- Seçenek butonları JS ile yerleştirilecek -->
+        </div>
+
+        <div class="options-group-title">Mutfak Notu</div>
+        <textarea class="note-textarea" id="customise-item-note" placeholder="Örn: Maydanozsuz olsun, acısı bol olsun..."></textarea>
+        
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-cancel" onclick="closeModal('modal-customise')">Vazgeç</button>
+          <button class="modal-btn modal-btn-confirm" id="btn-customise-confirm">Siparişe Ekle</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: ÖDEME CHECKOUT MODALI -->
+  <div class="modal-overlay" id="modal-checkout">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Hesap Ödeme Al</h3>
+        <span class="modal-close-btn" onclick="closeModal('modal-checkout')">
+          <i data-lucide="x"></i>
+        </span>
+      </div>
+      <div class="modal-body">
+        <div class="checkout-payment-box">
+          <div class="amount-due-row">
+            <span class="due-label">Ödenmesi Gereken:</span>
+            <span class="due-value" id="checkout-due-amount">0.00 ₺</span>
+          </div>
+
+          <div class="options-group-title">Ödeme Yöntemi</div>
+          <div class="payment-methods-grid">
+            <button class="pay-method-btn selected" id="method-cash" onclick="setPaymentMethod('CASH')">
+              <i data-lucide="banknote" style="color: var(--status-free);"></i>
+              <span>Nakit</span>
+            </button>
+            <button class="pay-method-btn" id="method-card" onclick="setPaymentMethod('CARD')">
+              <i data-lucide="credit-card" style="color: var(--accent-purple);"></i>
+              <span>Kredi Kartı</span>
+            </button>
+          </div>
+
+          <div id="cash-change-calculator">
+            <div class="options-group-title">Hızlı Nakit Seçenekleri</div>
+            <div class="quick-cash-row" id="quick-cash-buttons-container">
+              <!-- Hızlı nakit ödeme butonları -->
+            </div>
+            
+            <div class="received-amount-input" style="margin-top: 14px;">
+              <label>Alınan Nakit:</label>
+              <input type="number" id="received-amount-input" value="0" min="0" oninput="calculateChangeDue()">
+            </div>
+
+            <div class="change-due-box" style="margin-top: 10px;">
+              <span>Para Üstü:</span>
+              <span class="change-value" id="change-due-value">0.00 ₺</span>
+            </div>
+          </div>
+
+          <div class="modal-actions" style="margin-top: 10px;">
+            <button class="modal-btn modal-btn-cancel" onclick="closeModal('modal-checkout')">Vazgeç</button>
+            <button class="modal-btn modal-btn-confirm" onclick="processPaymentAndPrint()">Ödemeyi Kapat</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: ADİSYON / FATURA MODALI -->
+  <div class="modal-overlay" id="modal-receipt">
+    <div class="modal-content" style="background: none; border: none; box-shadow: none; width: 340px;">
+      <div class="receipt-paper" id="receipt-paper-content">
+        <!-- Dinamik Adisyon Fatura Tasarımı -->
+      </div>
+      <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center;">
+        <button class="modal-btn modal-btn-confirm" onclick="closeModal('modal-receipt'); switchScreen('tables');" style="max-width: 140px; background: var(--accent-cyan);">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: HESAP BÖLME (SPLIT BILL) MODALI -->
+  <div class="modal-overlay" id="modal-split-bill">
+    <div class="modal-content" style="width: 460px;">
+      <div class="modal-header">
+        <h3>Hesap Adisyon Böl</h3>
+        <span class="modal-close-btn" onclick="closeModal('modal-split-bill')">
+          <i data-lucide="x"></i>
+        </span>
+      </div>
+      <div class="modal-body">
+        <div class="amount-due-row" style="margin-bottom: 12px; padding: 10px 14px;">
+          <span class="due-label">Masa Toplam Hesabı:</span>
+          <span class="due-value" id="split-total-amount" style="font-size:18px;">0.00 ₺</span>
+        </div>
+        
+        <div class="options-group-title">Ödenecek Ürünleri Seçin</div>
+        <div id="split-bill-items-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 16px; border: 1px solid var(--border-light); padding: 8px; border-radius: 12px;">
+          <!-- Ürünlerin listesi check-box'lar ile -->
+        </div>
+
+        <div class="amount-due-row" style="margin-bottom: 16px; padding: 10px 14px; background: rgba(6,182,212,0.05); border-color: rgba(6,182,212,0.2);">
+          <span class="due-label" style="color: var(--accent-cyan);">Seçilenlerin Toplamı (Ödenecek):</span>
+          <span class="due-value" id="split-selected-amount" style="font-size:18px; color: var(--accent-cyan);">0.00 ₺</span>
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-cancel" onclick="closeModal('modal-split-bill')">Vazgeç</button>
+          <button class="modal-btn modal-btn-confirm" onclick="processSplitPayment()" style="background: var(--status-bill); box-shadow: 0 4px 12px var(--status-bill-glow);">Seçilenleri Tahsil Et</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: MASA BİRLEŞTİRME MODALI -->
+  <div class="modal-overlay" id="modal-merge-tables">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Masaları Birleştir</h3>
+        <span class="modal-close-btn" onclick="closeModal('modal-merge-tables')">
+          <i data-lucide="x"></i>
+        </span>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Şu anki aktif masayı başka bir masa ile birleştirerek tüm hesabı tek adisyona aktarın.</p>
+        
+        <div class="options-group-title">Hedef Masa Seçin</div>
+        <select class="staff-select" id="merge-tables-select" style="width: 100%; margin-bottom: 24px; padding: 10px;">
+          <!-- Diğer masalar listelenecek -->
+        </select>
+
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-cancel" onclick="closeModal('modal-merge-tables')">Vazgeç</button>
+          <button class="modal-btn modal-btn-confirm" onclick="processMergeTables()">Masaları Birleştir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: PERSONEL GİRİŞİ / İK PIN MODALI -->
+  <div class="modal-overlay" id="modal-staff-pin">
+    <div class="modal-content" style="width: 320px;">
+      <div class="modal-header">
+        <h3>Personel İK Girişi</h3>
+        <span class="modal-close-btn" onclick="closeModal('modal-staff-pin')">
+          <i data-lucide="x"></i>
+        </span>
+      </div>
+      <div class="modal-body" style="padding: 16px 24px;">
+        <div class="pin-display" id="staff-pin-display">****</div>
+        <div class="pin-grid">
+          <button class="pin-btn" onclick="pressPin('1')">1</button>
+          <button class="pin-btn" onclick="pressPin('2')">2</button>
+          <button class="pin-btn" onclick="pressPin('3')">3</button>
+          <button class="pin-btn" onclick="pressPin('4')">4</button>
+          <button class="pin-btn" onclick="pressPin('5')">5</button>
+          <button class="pin-btn" onclick="pressPin('6')">6</button>
+          <button class="pin-btn" onclick="pressPin('7')">7</button>
+          <button class="pin-btn" onclick="pressPin('8')">8</button>
+          <button class="pin-btn" onclick="pressPin('9')">9</button>
+          <button class="pin-btn" onclick="clearPin()" style="font-size:14px; color:var(--status-busy);">Sil</button>
+          <button class="pin-btn" onclick="pressPin('0')">0</button>
+          <button class="pin-btn" onclick="submitPin()" style="font-size:14px; color:var(--status-free);">Giriş</button>
+        </div>
+        <div style="text-align: center; margin-top: 10px;">
+          <p style="font-size:11px; color: var(--text-secondary);">Garsonlar Giriş Şifresi:<br>Ahmet: 1111 | Merve: 2222 | Can: 3333 | Elif: 4444</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 7: PAKET SERVİS ENTEGRASYON SİPARİŞİ MODALI -->
+  <div class="modal-overlay" id="modal-delivery-order">
+    <div class="modal-content">
+      <div class="modal-header" style="background: var(--status-busy); color: white;">
+        <h3 id="delivery-modal-title">Yeni Paket Sipariş!</h3>
+        <span class="modal-close-btn" onclick="closeModal('modal-delivery-order')" style="color: white;">
+          <i data-lucide="x"></i>
+        </span>
+      </div>
+      <div class="modal-body">
+        <div class="delivery-order-box" id="delivery-order-details">
+          <!-- Gelen sipariş detayları -->
+        </div>
+        <!-- Harita Konteyneri -->
+        <div id="delivery-order-map" style="height: 180px; width: 100%; border-radius: 12px; margin-top: 12px; border: 1px solid var(--border-light); display: none;"></div>
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-cancel" onclick="rejectDeliveryOrder()" style="color: var(--status-busy); border-color: rgba(239, 68, 68, 0.4);">Siparişi Reddet</button>
+          <button class="modal-btn modal-btn-confirm" onclick="acceptDeliveryOrder()" style="background: var(--status-free); box-shadow: 0 4px 12px var(--status-free-glow);">Siparişi Kabul Et</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- TOAST BİLDİRİM BÖLGESİ -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- YAZDIRILABİLİR MASA QR ETİKETLERİ BÖLÜMÜ -->
+  <div id="print-qr-section" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0b0f19; z-index: 2000; overflow-y: auto; padding: 20px;">
+    <div class="print-layout-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 16px; margin-bottom: 20px;">
+      <div>
+        <h2 style="font-size: 20px; font-weight: 600;">Masa QR Etiketi Baskı Ön İzleme</h2>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Tarayıcınızın Yazdır (Ctrl+P / Cmd+P) özelliğini kullanarak etiketlerinizi A4 kağıdına yazdırabilirsiniz.</p>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <button class="modal-btn modal-btn-cancel" onclick="closeQRPrintLayout()" style="width: 120px; background: var(--bg-card); border: 1px solid var(--border-light);">Geri Dön</button>
+        <button class="modal-btn modal-btn-confirm" onclick="window.print()" style="width: 140px; background: var(--status-free); box-shadow: 0 4px 12px var(--status-free-glow);">Yazdır / Kaydet</button>
+      </div>
+    </div>
+    <div id="print-qr-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; padding: 20px; justify-content: center; justify-items: center;">
+      <!-- Dinamik Masa QR Kartları buraya çizilecek -->
+    </div>
+  </div>
+
+  <!-- UYGULAMA JS DOSYALARI -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
