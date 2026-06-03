@@ -82,7 +82,7 @@ socket.on('sync_state', (data) => {
 // Live KDS socket notification listeners
 socket.on('new_kitchen_ticket', (data) => {
   showToast(`Yeni Mutfak Siparişi! ${data.tableName} siparişi iletildi.`, 'success');
-  playOrderBeep();
+  startOrderSoundLoop();
 });
 
 socket.on('kitchen_ticket_ready', (data) => {
@@ -1597,6 +1597,7 @@ function renderDeliveryOrderMap(lat, lng, customerName) {
 
 // Global shared AudioContext initialized/unlocked via user gesture
 document.addEventListener('click', () => {
+  stopOrderSoundLoop();
   if (!window.appAudioCtx) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (AudioContext) {
@@ -1608,88 +1609,24 @@ document.addEventListener('click', () => {
   }
 }, { once: false });
 
-function playKick(ctx, time) {
-  try {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc.frequency.setValueAtTime(150, time);
-    osc.frequency.exponentialRampToValueAtTime(40, time + 0.12);
-    
-    gain.gain.setValueAtTime(0.5, time);
-    gain.gain.linearRampToValueAtTime(0.01, time + 0.15);
-    
-    osc.start(time);
-    osc.stop(time + 0.16);
-  } catch (e) {}
+let orderSoundInterval = null;
+
+function startOrderSoundLoop() {
+  if (orderSoundInterval) return; // already looping
+  playOrderBeep();
+  orderSoundInterval = setInterval(() => {
+    playOrderBeep();
+  }, 3000); // Repeat every 3 seconds
 }
 
-function playSnare(ctx, time) {
-  try {
-    const bufferSize = ctx.sampleRate * 0.1;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-    
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 1000;
-    
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.12, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
-    
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    
-    noise.start(time);
-    noise.stop(time + 0.1);
-  } catch (e) {}
+function stopOrderSoundLoop() {
+  if (orderSoundInterval) {
+    clearInterval(orderSoundInterval);
+    orderSoundInterval = null;
+  }
 }
 
-function playZurnaNote(ctx, freq, time, duration) {
-  try {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-    
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(freq, time);
-    
-    const vibrato = ctx.createOscillator();
-    const vibratoGain = ctx.createGain();
-    vibrato.frequency.value = 8;
-    vibratoGain.gain.value = freq * 0.02;
-    vibrato.connect(vibratoGain);
-    vibratoGain.connect(osc.frequency);
-    vibrato.start(time);
-    vibrato.stop(time + duration);
-    
-    filter.type = 'highpass';
-    filter.frequency.value = 300;
-    
-    gain.gain.setValueAtTime(0, time);
-    gain.gain.linearRampToValueAtTime(0.12, time + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + duration - 0.01);
-    
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc.start(time);
-    osc.stop(time + duration);
-  } catch (e) {}
-}
-
-function playSynthesizedHalay() {
+function playOrderBeep() {
   let ctx = window.appAudioCtx;
   if (!ctx) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -1703,97 +1640,32 @@ function playSynthesizedHalay() {
   }
   
   try {
-    const NOTES = {
-      'A4': 440.00,
-      'B4': 493.88,
-      'C5': 523.25,
-      'D5': 587.33,
-      'E5': 659.25,
-      'F5': 698.46,
-      'G5': 783.99,
-      'A5': 880.00
-    };
-
-    // Traditional Delilo melody - "Delilo delilo destane..."
-    const halayMelody = [
-      // Verse 1
-      { note: 'A4', beats: 0.5 },
-      { note: 'B4', beats: 0.5 },
-      { note: 'C5', beats: 1.0 },
-      { note: 'B4', beats: 0.5 },
-      { note: 'C5', beats: 0.5 },
-      { note: 'D5', beats: 1.0 },
-      { note: 'C5', beats: 0.5 },
-      { note: 'B4', beats: 0.5 },
-      { note: 'A4', beats: 1.0 },
-      { note: 'B4', beats: 0.5 },
-      { note: 'C5', beats: 0.5 },
-      { note: 'A4', beats: 1.0 },
-
-      // Verse 2 (repeat)
-      { note: 'A4', beats: 0.5 },
-      { note: 'B4', beats: 0.5 },
-      { note: 'C5', beats: 1.0 },
-      { note: 'B4', beats: 0.5 },
-      { note: 'C5', beats: 0.5 },
-      { note: 'D5', beats: 1.0 },
-      { note: 'C5', beats: 0.5 },
-      { note: 'B4', beats: 0.5 },
-      { note: 'A4', beats: 1.0 },
-      { note: 'B4', beats: 0.5 },
-      { note: 'C5', beats: 0.5 },
-      { note: 'A4', beats: 1.0 }
-    ];
-
-    const beatDuration = 60 / 130; // 130 BPM
-    const startTime = ctx.currentTime + 0.05;
-
-    // Rhythmic kick & snare pattern (modern halay) - 16 beats long
-    for (let i = 0; i < 16; i++) {
-      const kickTime = startTime + i * beatDuration;
-      playKick(ctx, kickTime);
-      
-      const snareTime = startTime + (i + 0.5) * beatDuration;
-      playSnare(ctx, snareTime);
-    }
-
-    let currentNoteTime = startTime;
-    halayMelody.forEach(item => {
-      const freq = NOTES[item.note];
-      const duration = item.beats * beatDuration;
-      if (freq) {
-        playZurnaNote(ctx, freq, currentNoteTime, duration);
-      }
-      currentNoteTime += duration;
-    });
+    // Pleasant synthesized double-tone notification beep (C5 then E5)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+    gain1.gain.setValueAtTime(0, ctx.currentTime);
+    gain1.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.3);
+    
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(659.25, ctx.currentTime + 0.15); // E5
+    gain2.gain.setValueAtTime(0, ctx.currentTime + 0.15);
+    gain2.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.2);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(ctx.currentTime + 0.15);
+    osc2.stop(ctx.currentTime + 0.45);
   } catch (err) {
-    console.error("Failed to play halay:", err);
-  }
-}
-
-function playOrderBeep() {
-  try {
-    if (window.orderAudioPlayer) {
-      try { window.orderAudioPlayer.pause(); } catch(e) {}
-    }
-    
-    const audio = new Audio('/delilo.mp4');
-    window.orderAudioPlayer = audio;
-    audio.volume = 0.8;
-    
-    audio.play().then(() => {
-      console.log("Playing original Delilo track.");
-      if (window.orderAudioTimeout) clearTimeout(window.orderAudioTimeout);
-      window.orderAudioTimeout = setTimeout(() => {
-        try { audio.pause(); } catch(e) {}
-      }, 15000); // 15 seconds limit
-    }).catch(err => {
-      console.warn("Autoplay policy blocked or delilo.mp4 file missing. Falling back to synthesized Delilo zurna chime.", err);
-      playSynthesizedHalay();
-    });
-  } catch (e) {
-    console.warn("Audio element failed, falling back to synthesized Delilo zurna chime.", e);
-    playSynthesizedHalay();
+    console.error("Failed to play order beep:", err);
   }
 }
 
@@ -1934,8 +1806,8 @@ function triggerIncomingDeliveryClient(channelId, order) {
     badge.classList.add('active-alert');
   }
 
-  // Play Turkish March!
-  playTurkishMarch();
+  // Start looping order sound
+  startOrderSoundLoop();
 
   if (order.coords && order.coords.lat && order.coords.lng && order.channel !== 'takeaway') {
     renderDeliveryOrderMap(order.coords.lat, order.coords.lng, order.customerName || 'Müşteri');
@@ -2066,6 +1938,7 @@ async function acceptDeliveryOrder() {
     closeModal('modal-delivery-order');
     showToast(`${channelName} siparişi onaylandı, mutfağa gönderildi.`, 'success');
     
+    stopOrderSoundLoop();
     currentPendingDeliveryOrder = null;
   } catch (err) {
     console.error(err);
@@ -2075,7 +1948,8 @@ async function acceptDeliveryOrder() {
 
 function rejectDeliveryOrder() {
   if (!currentPendingDeliveryOrder) return;
-  stopTurkishMarch();
+  stopOrderSoundLoop();
+  stopTurkishMarch(); // Clean up if any
   
   const channel = currentPendingDeliveryOrder.channel;
   const badge = document.getElementById(`delivery-${channel}`);
