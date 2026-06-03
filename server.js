@@ -101,7 +101,8 @@ app.post('/api/orders/pay', async (req, res) => {
   try {
     // Save to sales history
     await db.run(
-      `INSERT INTO sales_history VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO sales_history (id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId, timestamp)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, tableId, tableName, JSON.stringify(items), subtotal, tax, discount, total, paymentMethod, orderType, waiterId, new Date().toISOString()]
     );
 
@@ -188,7 +189,8 @@ app.post('/api/kitchen/ticket', async (req, res) => {
   const { id, tableId, tableName, waiterId, items } = req.body;
   try {
     await db.run(
-      `INSERT INTO kitchen_orders VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO kitchen_orders (id, tableId, tableName, waiterId, status, items, timestamp)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [id, tableId, tableName, waiterId, 'cooking', JSON.stringify(items), new Date().toISOString()]
     );
     
@@ -198,7 +200,7 @@ app.post('/api/kitchen/ticket', async (req, res) => {
 
     const state = await db.getAppState();
     io.emit('sync_state', state);
-    io.emit('new_kitchen_ticket', { tableName });
+    io.emit('new_kitchen_ticket', { tableName, waiterId });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -322,7 +324,8 @@ app.post('/api/settings/item/add', async (req, res) => {
   const { id, categoryId, name, price, description, image, popular, options } = req.body;
   try {
     await db.run(
-      `INSERT INTO menu_items VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO menu_items (id, categoryId, name, price, description, image, popular, options)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, categoryId, name, price, description, image, popular ? 1 : 0, JSON.stringify(options)]
     );
     const state = await db.getAppState();
@@ -338,7 +341,8 @@ app.post('/api/settings/table/add', async (req, res) => {
   const { id, name, category, x, y, shape, status } = req.body;
   try {
     await db.run(
-      `INSERT INTO tables VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tables (id, name, category, x, y, shape, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [id, name, category, x, y, shape, status]
     );
     const state = await db.getAppState();

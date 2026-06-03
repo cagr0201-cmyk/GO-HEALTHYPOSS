@@ -82,7 +82,9 @@ socket.on('sync_state', (data) => {
 // Live KDS socket notification listeners
 socket.on('new_kitchen_ticket', (data) => {
   showToast(`Yeni Mutfak Siparişi! ${data.tableName} siparişi iletildi.`, 'success');
-  startOrderSoundLoop();
+  if (data.waiterId === 'Müşteri') {
+    startOrderSoundLoop();
+  }
 });
 
 socket.on('kitchen_ticket_ready', (data) => {
@@ -1609,6 +1611,20 @@ document.addEventListener('click', () => {
   }
 }, { once: false });
 
+let activeMarchOscillators = [];
+let activeMarchGainNodes = [];
+
+function stopActiveMarchNotes() {
+  activeMarchOscillators.forEach(osc => {
+    try { osc.stop(); } catch (e) {}
+  });
+  activeMarchOscillators = [];
+  activeMarchGainNodes.forEach(g => {
+    try { g.gain.setValueAtTime(0, g.context.currentTime); } catch (e) {}
+  });
+  activeMarchGainNodes = [];
+}
+
 function startOrderSoundLoop() {
   window.isOrderSoundActive = true;
   playTurkishMarch();
@@ -1624,15 +1640,19 @@ function playOrderBeep() {
 }
 
 function playTurkishMarch() {
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) return;
-  
-  if (window.turkishMarchCtx) {
-    try { window.turkishMarchCtx.close(); } catch(e) {}
+  let ctx = window.appAudioCtx;
+  if (!ctx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    ctx = new AudioContext();
+    window.appAudioCtx = ctx;
   }
   
-  const ctx = new AudioContext();
-  window.turkishMarchCtx = ctx;
+  if (ctx.state === 'suspended') {
+    ctx.resume();
+  }
+
+  stopActiveMarchNotes();
 
   const notes = {
     'G#4': 415.30, 'A4': 440.00, 'B4': 493.88, 'C5': 523.25, 'D5': 587.33,
@@ -1722,6 +1742,9 @@ function playTurkishMarch() {
       osc1.stop(time + duration);
       osc2.start(time);
       osc2.stop(time + duration);
+
+      activeMarchOscillators.push(osc1, osc2);
+      activeMarchGainNodes.push(gainNode, gainHarmonic);
     }
     
     time += duration;
@@ -1742,14 +1765,7 @@ function stopTurkishMarch() {
     clearTimeout(window.turkishMarchTimeout);
     window.turkishMarchTimeout = null;
   }
-  if (window.turkishMarchCtx) {
-    try {
-      window.turkishMarchCtx.close();
-      window.turkishMarchCtx = null;
-    } catch (e) {
-      console.error("Error stopping music:", e);
-    }
-  }
+  stopActiveMarchNotes();
 }
 
 function triggerIncomingDeliveryClient(channelId, order) {
@@ -1845,7 +1861,7 @@ async function acceptDeliveryOrder() {
       }
     }
 
-    await fetch('/api/orders', {
+    const resOrders = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1868,7 +1884,11 @@ async function acceptDeliveryOrder() {
       })
     });
 
-    await fetch('/api/kitchen/ticket', {
+    if (!resOrders.ok) {
+      throw new Error('Sipariş sunucuda oluşturulamadı.');
+    }
+
+    const resTicket = await fetch('/api/kitchen/ticket', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1886,6 +1906,10 @@ async function acceptDeliveryOrder() {
       })
     });
 
+    if (!resTicket.ok) {
+      throw new Error('Mutfak bileti sunucuda oluşturulamadı.');
+    }
+
     const badge = document.getElementById(`delivery-${channel}`);
     if (badge) badge.classList.remove('active-alert');
 
@@ -1896,7 +1920,7 @@ async function acceptDeliveryOrder() {
     currentPendingDeliveryOrder = null;
   } catch (err) {
     console.error(err);
-    showToast('Sipariş onaylanırken hata oluştu!', 'error');
+    showToast('Sipariş onaylanırken hata oluştu: ' + err.message, 'error');
   }
 }
 

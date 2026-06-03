@@ -319,7 +319,7 @@ async function initDatabase() {
       { id: 'V4', name: 'VIP Oda 4', category: 'VIP', x: 70, y: 70, shape: 'large-round', status: 'free' }
     ];
     for (const t of defaultTables) {
-      await run(`INSERT INTO tables VALUES (?, ?, ?, ?, ?, ?, ?)`, [t.id, t.name, t.category, t.x, t.y, t.shape, t.status]);
+      await run(`INSERT INTO tables (id, name, category, x, y, shape, status) VALUES (?, ?, ?, ?, ?, ?, ?)`, [t.id, t.name, t.category, t.x, t.y, t.shape, t.status]);
     }
   }
 
@@ -343,14 +343,14 @@ async function initDatabase() {
       { id: 'cay', categoryId: 'icecekler', name: 'Organik Yeşil Çay', price: 40, description: 'Organik demleme yaprak yeşil çay.', image: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=400&q=80', popular: 1, options: [] }
     ];
     for (const m of defaultMenuItems) {
-      await run(`INSERT INTO menu_items VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [m.id, m.categoryId, m.name, m.price, m.description, m.image, m.popular, JSON.stringify(m.options)]);
+      await run(`INSERT INTO menu_items (id, categoryId, name, price, description, image, popular, options) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [m.id, m.categoryId, m.name, m.price, m.description, m.image, m.popular, JSON.stringify(m.options)]);
     }
   }
 
   const stocksCount = await get(`SELECT COUNT(*) as count FROM stocks`);
   if (Number(stocksCount.count) === 0) {
     for (const s of INITIAL_STOCKS) {
-      await run(`INSERT INTO stocks VALUES (?, ?, ?, ?, ?)`, [s.id, s.name, s.quantity, s.unit, s.minLimit]);
+      await run(`INSERT INTO stocks (id, name, quantity, unit, minLimit) VALUES (?, ?, ?, ?, ?)`, [s.id, s.name, s.quantity, s.unit, s.minLimit]);
     }
   }
 
@@ -363,7 +363,7 @@ async function initDatabase() {
       { id: 'elif', name: 'Elif Şahin', role: 'Kasiyer', code: '4444', status: 'in', shiftStart: new Date().toISOString() }
     ];
     for (const st of defaultStaff) {
-      await run(`INSERT INTO staff VALUES (?, ?, ?, ?, ?, ?)`, [st.id, st.name, st.role, st.code, st.status, st.shiftStart]);
+      await run(`INSERT INTO staff (id, name, role, code, status, shiftStart) VALUES (?, ?, ?, ?, ?, ?)`, [st.id, st.name, st.role, st.code, st.status, st.shiftStart]);
     }
   }
 
@@ -438,7 +438,7 @@ async function seedHistoryInSQLite() {
       const min = Math.floor(Math.random() * 60);
       const date = new Date(startYear, month, day, hour, min);
       const tx = generateRandomTx(date);
-      await run(`INSERT INTO sales_history VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      await run(`INSERT INTO sales_history (id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
         tx.id, tx.tableId, tx.tableName, tx.items, tx.subtotal, tx.tax, tx.discount, tx.total, tx.paymentMethod, tx.orderType, tx.waiterId, tx.timestamp
       ]);
     }
@@ -455,7 +455,7 @@ async function seedHistoryInSQLite() {
       const min = Math.floor(Math.random() * 60);
       const date = new Date(currentYear, month, day, hour, min);
       const tx = generateRandomTx(date);
-      await run(`INSERT INTO sales_history VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      await run(`INSERT INTO sales_history (id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
         tx.id, tx.tableId, tx.tableName, tx.items, tx.subtotal, tx.tax, tx.discount, tx.total, tx.paymentMethod, tx.orderType, tx.waiterId, tx.timestamp
       ]);
     }
