@@ -1689,7 +1689,7 @@ function playZurnaNote(ctx, freq, time, duration) {
   } catch (e) {}
 }
 
-function playOrderBeep() {
+function playSynthesizedHalay() {
   let ctx = window.appAudioCtx;
   if (!ctx) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -1768,6 +1768,19 @@ function playOrderBeep() {
     });
   } catch (err) {
     console.error("Failed to play halay:", err);
+  }
+}
+
+function playOrderBeep() {
+  try {
+    const audio = new Audio('/delilo.mp3');
+    audio.play().catch(err => {
+      console.warn("Autoplay policy blocked or delilo.mp3 file missing. Falling back to synthesized Delilo zurna chime.", err);
+      playSynthesizedHalay();
+    });
+  } catch (e) {
+    console.warn("Audio element failed, falling back to synthesized Delilo zurna chime.", e);
+    playSynthesizedHalay();
   }
 }
 
