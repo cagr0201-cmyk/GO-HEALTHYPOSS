@@ -1781,7 +1781,7 @@ button, input, select, textarea {
 .toast.error .toast-icon { color: var(--status-busy); }
 
 
-/* --- 8. KARDO POS UYARLANAN EK BİLEŞEN STİLLERİ --- */
+/* --- 8. EK BİLEŞEN STİLLERİ --- */
 
 /* Yüzen QR Menü Butonu */
 .floating-qr-trigger {

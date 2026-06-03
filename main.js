@@ -10,7 +10,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    title: "Aura POS - Powered by Kardo POS Infrastructure",
+    title: "Go Healthy POS",
     icon: path.join(__dirname, 'public', 'favicon.ico'), // Fallback if present
     autoHideMenuBar: true,
     webPreferences: {

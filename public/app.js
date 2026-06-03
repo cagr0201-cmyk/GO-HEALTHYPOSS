@@ -1,4 +1,4 @@
-// Aura POS - Powered by Kardo POS Infrastructure
+// Go Healthy POS
 // State ve Temel Mekanizmalar
 
 let AppState = {
@@ -301,7 +301,7 @@ async function switchScreen(viewName) {
   
   if (viewName === 'tables') {
     mainTitle.textContent = `Masa Haritası - ${AppState.activeFloor}`;
-    subTitle.textContent = 'Kardo POS Akıllı Masa Haritası Düzeni';
+    subTitle.textContent = 'Akıllı Masa Haritası Düzeni';
     renderTableMap();
     renderActiveDeliveries();
   } else if (viewName === 'pos') {
@@ -470,7 +470,7 @@ function renderPOSMenu(itemsToRender = null) {
       <div class="menu-card-content">
         <div>
           <h4 class="menu-card-title">${item.name}</h4>
-          <p class="menu-card-desc">${item.description || 'Kardo POS altyapısıyla taze servis edilir.'}</p>
+          <p class="menu-card-desc">${item.description || 'Taze ve sağlıklı olarak servis edilir.'}</p>
         </div>
         <div class="menu-card-footer">
           <span class="menu-card-price">${item.price.toFixed(2)} ₺</span>
@@ -681,7 +681,7 @@ async function updateCartItemQty(tableId, index, delta) {
     }
     item.quantity += 1;
   } else {
-    // Geri iade stoğu ekle (isteğe bağlı, Kardo POS stok iadesini simüle edelim)
+    // Geri iade stoğu ekle (isteğe bağlı)
     await checkAndDeductStock(item.id, -1);
     item.quantity -= 1;
   }
@@ -761,8 +761,8 @@ async function recalculateTotals() {
   
   const discountAmount = subtotal * (discountPercent / 100);
   const subtotalWithDiscount = subtotal - discountAmount;
-  const tax = subtotalWithDiscount * 0.10;
-  const total = subtotalWithDiscount + tax;
+  const tax = 0;
+  const total = subtotalWithDiscount;
 
   document.getElementById('summary-subtotal').textContent = `${subtotal.toFixed(2)} ₺`;
   document.getElementById('summary-tax').textContent = `${tax.toFixed(2)} ₺`;
@@ -776,7 +776,7 @@ function calculateOrderTotal(order) {
   const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const discountAmount = subtotal * ((order.discount || 0) / 100);
   const subtotalWithDiscount = subtotal - discountAmount;
-  return subtotalWithDiscount * 1.10;
+  return subtotalWithDiscount;
 }
 
 // --- MODAL: ÜRÜN ÖZELLEŞTİRME VE NOT MODALI ---
@@ -1077,8 +1077,8 @@ async function processPaymentAndPrint() {
   const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const discountAmount = subtotal * ((order.discount || 0) / 100);
   const subtotalWithDiscount = subtotal - discountAmount;
-  const tax = subtotalWithDiscount * 0.10;
-  const total = subtotalWithDiscount + tax;
+  const tax = 0;
+  const total = subtotalWithDiscount;
   
   const transaction = {
     id: 'TX-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
@@ -1171,7 +1171,7 @@ function generateReceiptHTML(tx) {
       <span>-${(tx.subtotal * tx.discount / 100).toFixed(2)} ₺</span>
     </div>
     ` : ''}
-    <div class="receipt-info-row">
+    <div class="receipt-info-row" style="display:none;">
       <span>KDV (%10):</span>
       <span>${tx.tax.toFixed(2)} ₺</span>
     </div>
@@ -1186,7 +1186,6 @@ function generateReceiptHTML(tx) {
     </div>
     <div class="receipt-footer">
       <p>TEŞEKKÜR EDERİZ</p>
-      <p>Kardo POS Altyapısıdır</p>
       <div class="receipt-barcode"></div>
     </div>
   `;
@@ -1265,8 +1264,8 @@ async function processSplitPayment() {
   });
 
   const subtotal = AppState.selectedSplitItems.reduce((sum, i) => sum + i.price, 0);
-  const tax = subtotal * 0.10;
-  const total = subtotal + tax;
+  const tax = 0;
+  const total = subtotal;
 
   const transaction = {
     id: 'TX-SPLIT-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
@@ -1494,7 +1493,7 @@ function sendQRMenuOrder() {
     };
   }
 
-  // Sepetteki tüm ürünleri masaya ekle (stok düşümünü Kardo POS otomasyonuyla yaparız)
+  // Sepetteki tüm ürünleri masaya ekle (stok düşümünü yaparız)
   let allAdded = true;
   QRCart.items.forEach(qItem => {
     const item = AppState.menuItems.find(mi => mi.id === qItem.itemId);

@@ -1015,7 +1015,7 @@
           <span>Ara Toplam</span>
           <span id="checkout-subtotal">0.00 ₺</span>
         </div>
-        <div class="checkout-total-row">
+        <div class="checkout-total-row" style="display: none;">
           <span>KDV (%10)</span>
           <span id="checkout-tax">0.00 ₺</span>
         </div>
@@ -1403,8 +1403,8 @@
     function updateCartUI() {
       const totalQty = cart.reduce((sum, c) => sum + c.quantity, 0);
       const subtotal = cart.reduce((sum, c) => sum + (c.item.price * c.quantity), 0);
-      const tax = subtotal * 0.10;
-      const grandTotal = subtotal + tax;
+      const tax = 0;
+      const grandTotal = subtotal;
 
       // Update Floating Bar
       const floatingCart = document.getElementById('floating-cart');

@@ -1,7 +1,7 @@
 {
   "name": "aura-pos",
   "version": "1.0.0",
-  "description": "Aura POS - Restaurant Management POS System powered by Kardo POS infrastructure",
+  "description": "Go Healthy POS - Restaurant Management POS System",
   "main": "main.js",
   "scripts": {
     "start": "node server.js",

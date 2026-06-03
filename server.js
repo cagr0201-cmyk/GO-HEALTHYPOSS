@@ -394,7 +394,7 @@ db.initDatabase()
   .then(() => {
     server.listen(PORT, () => {
       console.log(`=========================================`);
-      console.log(`Aura POS (Powered by Kardo POS Server)`);
+      console.log(`Go Healthy POS Server`);
       console.log(`Sunucu Başlatıldı!`);
       console.log(`Lokal Giriş: http://localhost:${PORT}`);
       console.log(`Diğer Cihazlar: http://${SERVER_IP}:${PORT}`);
