@@ -1773,9 +1773,22 @@ function playSynthesizedHalay() {
 
 function playOrderBeep() {
   try {
-    const audio = new Audio('/delilo.mp3');
-    audio.play().catch(err => {
-      console.warn("Autoplay policy blocked or delilo.mp3 file missing. Falling back to synthesized Delilo zurna chime.", err);
+    if (window.orderAudioPlayer) {
+      try { window.orderAudioPlayer.pause(); } catch(e) {}
+    }
+    
+    const audio = new Audio('/delilo.mp4');
+    window.orderAudioPlayer = audio;
+    audio.volume = 0.8;
+    
+    audio.play().then(() => {
+      console.log("Playing original Delilo track.");
+      if (window.orderAudioTimeout) clearTimeout(window.orderAudioTimeout);
+      window.orderAudioTimeout = setTimeout(() => {
+        try { audio.pause(); } catch(e) {}
+      }, 15000); // 15 seconds limit
+    }).catch(err => {
+      console.warn("Autoplay policy blocked or delilo.mp4 file missing. Falling back to synthesized Delilo zurna chime.", err);
       playSynthesizedHalay();
     });
   } catch (e) {
