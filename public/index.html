@@ -641,7 +641,10 @@
         <!-- Dinamik Adisyon Fatura Tasarımı -->
       </div>
       <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center;">
-        <button class="modal-btn modal-btn-confirm" onclick="closeModal('modal-receipt'); switchScreen('tables');" style="max-width: 140px; background: var(--accent-cyan);">Kapat</button>
+        <button class="modal-btn modal-btn-confirm" onclick="printReceipt(window.currentPrintTransaction)" style="max-width: 140px; background: var(--status-free); box-shadow: 0 4px 12px var(--status-free-glow); display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <i data-lucide="printer" style="width:16px; height:16px;"></i> Yazdır
+        </button>
+        <button class="modal-btn modal-btn-cancel" onclick="closeModal('modal-receipt'); switchScreen('tables');" style="max-width: 140px;">Kapat</button>
       </div>
     </div>
   </div>
@@ -777,6 +780,9 @@
       <!-- Dinamik Masa QR Kartları buraya çizilecek -->
     </div>
   </div>
+
+  <!-- YAZDIRILABİLİR ADİSYON / FİŞ BÖLÜMÜ -->
+  <div id="print-receipt-section" style="display: none;"></div>
 
   <!-- UYGULAMA JS DOSYALARI -->
   <script src="data.js"></script>

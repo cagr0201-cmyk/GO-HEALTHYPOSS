@@ -1114,8 +1114,87 @@ async function processPaymentAndPrint() {
   }
 }
 
+function printReceipt(tx) {
+  const printSection = document.getElementById('print-receipt-section');
+  if (!printSection) return;
+
+  const dateStr = new Date(tx.timestamp).toLocaleString('tr-TR');
+  let itemLines = '';
+  tx.items.forEach(item => {
+    const optText = item.option ? ` (${item.option})` : '';
+    itemLines += `
+      <div class="receipt-item-line" style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size:12px;">
+        <span>${item.quantity}x ${item.name}${optText}</span>
+        <span>${(item.price * item.quantity).toFixed(2)} ₺</span>
+      </div>
+    `;
+  });
+
+  const methodText = tx.paymentMethod === 'CASH' ? 'NAKİT' : 'KREDİ KARTI';
+
+  printSection.innerHTML = `
+    <div class="receipt-paper" style="width: 80mm; padding: 10px; background:#fff; color:#000; font-family:monospace; margin:0 auto; box-sizing:border-box;">
+      <div class="receipt-header" style="text-align:center; margin-bottom: 8px;">
+        <div class="receipt-logo" style="font-size:18px; font-weight:bold;">Go Healthy</div>
+        <div style="font-size:11px; font-weight:bold;">THE KITCHEN ALANYA</div>
+        <div style="font-size:9px; color:#333;">Saray Mah. Macaroğlu Sok. 4B / ALANYA</div>
+        <div style="font-size:9px; color:#333;">Tel: +90 501 073 7303</div>
+      </div>
+      <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px;">
+        <span>Tarih:</span>
+        <span>${dateStr}</span>
+      </div>
+      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px;">
+        <span>Fiş No:</span>
+        <span>${tx.id}</span>
+      </div>
+      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px;">
+        <span>Masa/Bölüm:</span>
+        <span>${tx.tableName}</span>
+      </div>
+      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px;">
+        <span>Personel:</span>
+        <span>${tx.waiterId.toUpperCase()}</span>
+      </div>
+      <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+      <div class="receipt-items">
+        ${itemLines}
+      </div>
+      <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:11px; margin-bottom: 2px;">
+        <span>Ara Toplam:</span>
+        <span>${tx.subtotal.toFixed(2)} ₺</span>
+      </div>
+      ${tx.discount > 0 ? `
+      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:11px; color: green; margin-bottom: 2px;">
+        <span>İndirim (%${tx.discount}):</span>
+        <span>-${(tx.subtotal * tx.discount / 100).toFixed(2)} ₺</span>
+      </div>
+      ` : ''}
+      <div class="receipt-info-row receipt-totals" style="display:flex; justify-content:space-between; font-size:14px; font-weight:bold; margin-top: 4px;">
+        <span>TOPLAM:</span>
+        <span>${tx.total.toFixed(2)} ₺</span>
+      </div>
+      <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:11px; font-weight:bold; margin-bottom: 4px;">
+        <span>Ödeme Tipi:</span>
+        <span>${methodText}</span>
+      </div>
+      <div class="receipt-footer" style="text-align:center; font-size:10px; margin-top: 12px;">
+        <p style="margin:0 0 4px 0;">TEŞEKKÜR EDERİZ</p>
+      </div>
+    </div>
+  `;
+
+  document.body.classList.add('printing-receipt');
+  window.print();
+  document.body.classList.remove('printing-receipt');
+}
+
 // --- ADİSYON / FATURA SİMÜLASYONU ---
 function generateReceiptHTML(tx) {
+  window.currentPrintTransaction = tx;
   const receiptEl = document.getElementById('receipt-paper-content');
   const dateStr = new Date(tx.timestamp).toLocaleString('tr-TR');
   
@@ -1963,6 +2042,20 @@ async function acceptDeliveryOrder() {
     if (badge) badge.classList.remove('active-alert');
 
     showToast(`${channelName} siparişi onaylandı, mutfağa gönderildi.`, 'success');
+
+    // Automatically trigger printing for the accepted delivery order
+    printReceipt({
+      id: 'DEL-' + orderId,
+      timestamp: new Date().toISOString(),
+      tableName: `${channelName} (Paket)`,
+      waiterId: 'Entegrasyon',
+      items: items,
+      subtotal: items.reduce((sum, i) => sum + (i.price * i.quantity), 0),
+      discount: 0,
+      tax: 0,
+      total: items.reduce((sum, i) => sum + (i.price * i.quantity), 0),
+      paymentMethod: 'CARD'
+    });
     
     // Remove from queue and show next
     window.pendingDeliveryOrders.shift();

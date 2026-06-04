@@ -2169,6 +2169,23 @@ button, input, select, textarea {
   }
   
   #print-qr-section {
+    display: none !important;
+  }
+  
+  #print-receipt-section {
+    display: none !important;
+  }
+  
+  body.printing-receipt #print-receipt-section {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  
+  body:not(.printing-receipt) #print-qr-section {
     display: block !important;
     position: absolute !important;
     left: 0 !important;
