@@ -33,6 +33,7 @@ let QRCart = {
 // Otomatik Paket Servis Simülasyon Zamanlayıcısı
 let deliverySimulatorInterval = null;
 let currentPendingDeliveryOrder = null;
+window.pendingDeliveryOrders = [];
 
 // --- UYGULAMA BAŞLANGICI & SOCKET BAĞLANTISI ---
 const socket = io();
@@ -1548,6 +1549,10 @@ function sendQRMenuOrder() {
 
 // --- ONLINE SİPARİŞ KANALLARI ---
 function triggerIncomingDelivery(channelId) {
+  if (window.pendingDeliveryOrders && window.pendingDeliveryOrders.length > 0) {
+    showNextPendingDeliveryOrder();
+    return;
+  }
   const names = { delivery: 'Online Paket', takeaway: 'Online Gel-Al' };
   const channelName = names[channelId] || 'Paket Sipariş';
   showToast(`${channelName} kanalı aktif durumdadır.`, 'info');
@@ -1754,17 +1759,38 @@ function stopTurkishMarch() {
   stopActiveMarchNotes();
 }
 
-function triggerIncomingDeliveryClient(channelId, order) {
-  currentPendingDeliveryOrder = order;
+function updateDeliveryModalTitle() {
+  if (currentPendingDeliveryOrder) {
+    const queueLength = window.pendingDeliveryOrders.length;
+    document.getElementById('delivery-modal-title').textContent = 
+      `${currentPendingDeliveryOrder.channelName}: Yeni Sipariş! (Bekleyen: ${queueLength})`;
+  }
+}
 
-  const badge = document.getElementById(`delivery-${channelId}`);
+function showNextPendingDeliveryOrder() {
+  if (!window.pendingDeliveryOrders || window.pendingDeliveryOrders.length === 0) {
+    currentPendingDeliveryOrder = null;
+    closeModal('modal-delivery-order');
+    stopOrderSoundLoop();
+    stopTurkishMarch();
+    
+    // Clear active-alert badges
+    document.querySelectorAll('.delivery-channel-badge').forEach(b => b.classList.remove('active-alert'));
+    return;
+  }
+
+  // Get first pending order
+  const nextItem = window.pendingDeliveryOrders[0];
+  currentPendingDeliveryOrder = nextItem.order;
+
+  // Make the corresponding badge alert active
+  const badge = document.getElementById(`delivery-${nextItem.channelId}`);
   if (badge) {
     badge.classList.add('active-alert');
   }
 
-  // Start looping order sound
-  startOrderSoundLoop();
-
+  const order = currentPendingDeliveryOrder;
+  
   if (order.coords && order.coords.lat && order.coords.lng && order.channel !== 'takeaway') {
     renderDeliveryOrderMap(order.coords.lat, order.coords.lng, order.customerName || 'Müşteri');
   } else {
@@ -1816,9 +1842,31 @@ function triggerIncomingDeliveryClient(channelId, order) {
     </div>
   `;
 
-  document.getElementById('delivery-modal-title').textContent = `${order.channelName}: Yeni Sipariş!`;
+  updateDeliveryModalTitle();
   document.getElementById('modal-delivery-order').classList.add('active');
   lucide.createIcons();
+}
+
+function triggerIncomingDeliveryClient(channelId, order) {
+  // Push to queue
+  if (!window.pendingDeliveryOrders) window.pendingDeliveryOrders = [];
+  window.pendingDeliveryOrders.push({ channelId, order });
+
+  const badge = document.getElementById(`delivery-${channelId}`);
+  if (badge) {
+    badge.classList.add('active-alert');
+  }
+
+  // Start looping order sound
+  startOrderSoundLoop();
+
+  // If modal is not active, show it immediately
+  if (!document.getElementById('modal-delivery-order').classList.contains('active')) {
+    showNextPendingDeliveryOrder();
+  } else {
+    // If modal is already active, update the title to show count
+    updateDeliveryModalTitle();
+  }
 }
 
 async function acceptDeliveryOrder() {
@@ -1914,11 +1962,11 @@ async function acceptDeliveryOrder() {
     const badge = document.getElementById(`delivery-${channel}`);
     if (badge) badge.classList.remove('active-alert');
 
-    closeModal('modal-delivery-order');
     showToast(`${channelName} siparişi onaylandı, mutfağa gönderildi.`, 'success');
     
-    stopOrderSoundLoop();
-    currentPendingDeliveryOrder = null;
+    // Remove from queue and show next
+    window.pendingDeliveryOrders.shift();
+    showNextPendingDeliveryOrder();
   } catch (err) {
     console.error(err);
     alert('Sipariş onaylanırken hata oluştu: ' + err.message);
@@ -1928,16 +1976,17 @@ async function acceptDeliveryOrder() {
 
 function rejectDeliveryOrder() {
   if (!currentPendingDeliveryOrder) return;
-  stopOrderSoundLoop();
-  stopTurkishMarch(); // Clean up if any
   
   const channel = currentPendingDeliveryOrder.channel;
+  const channelName = currentPendingDeliveryOrder.channelName;
   const badge = document.getElementById(`delivery-${channel}`);
   if (badge) badge.classList.remove('active-alert');
 
-  closeModal('modal-delivery-order');
-  showToast(`${currentPendingDeliveryOrder.channelName} siparişi iptal edildi.`, 'info');
-  currentPendingDeliveryOrder = null;
+  showToast(`${channelName} siparişi iptal edildi.`, 'info');
+
+  // Remove from queue and show next
+  window.pendingDeliveryOrders.shift();
+  showNextPendingDeliveryOrder();
 }
 
 // --- DİZİN: STOK YÖNETİM TABLOSU ---
@@ -2675,6 +2724,8 @@ function closeModal(modalId) {
   if (modalId === 'modal-delivery-order') {
     const mapEl = document.getElementById('delivery-order-map');
     if (mapEl) mapEl.style.display = 'none';
+    stopOrderSoundLoop();
+    stopTurkishMarch();
   }
 }
 
