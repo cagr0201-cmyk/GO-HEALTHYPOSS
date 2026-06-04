@@ -41,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchAppState();
   initClock();
   initUIElements();
-  // initDeliverySimulation(); // Real-time restoran kullanımı için test siparişlerini kapattık
   switchScreen('tables');
   
   // Lucide İkonları Yükle
@@ -1547,23 +1546,11 @@ function sendQRMenuOrder() {
   if (AppState.activeView === 'kitchen') renderKitchenMonitor();
 }
 
-// --- PAKET SERVİS ENTEGRASYON SİMÜLASYONU (AUTO DELIVERY CHANNEL) ---
-function initDeliverySimulation() {
-  if (deliverySimulatorInterval) clearInterval(deliverySimulatorInterval);
-  
-  deliverySimulatorInterval = setInterval(async () => {
-    if (AppState.activeView === 'tables' || AppState.activeView === 'pos') {
-      const channels = ['yemeksepeti', 'getir', 'trendyol', 'migros'];
-      const randomChannel = channels[Math.floor(Math.random() * channels.length)];
-      triggerIncomingDelivery(randomChannel);
-    }
-  }, 50000);
-}
-
+// --- ONLINE SİPARİŞ KANALLARI ---
 function triggerIncomingDelivery(channelId) {
-  const names = { yemeksepeti: 'Yemeksepeti', getir: 'Getir Yemek', trendyol: 'Trendyol Yemek', migros: 'Migros Yemek', delivery: 'Online Paket', takeaway: 'Online Gel-Al' };
-  const channelName = names[channelId] || 'Paket Servis';
-  showToast(`${channelName} entegrasyon kanalı aktif durumdadır.`, 'info');
+  const names = { delivery: 'Online Paket', takeaway: 'Online Gel-Al' };
+  const channelName = names[channelId] || 'Paket Sipariş';
+  showToast(`${channelName} kanalı aktif durumdadır.`, 'info');
 }
 
 let deliveryMap = null;
@@ -1817,7 +1804,7 @@ function triggerIncomingDeliveryClient(channelId, order) {
   }
 
   detailsEl.innerHTML = `
-    <div style="font-weight:700; font-size:14px; margin-bottom:8px; color: var(--accent-cyan);">${order.channelName} Entegrasyonu</div>
+    <div style="font-weight:700; font-size:14px; margin-bottom:8px; color: var(--accent-cyan);">${order.channelName}</div>
     <div style="font-size:12px; margin-bottom:12px; color:var(--text-secondary);">Sipariş No: ${order.orderId}</div>
     <div style="border-top:1px dashed var(--border-light); border-bottom:1px dashed var(--border-light); padding:10px 0; margin-bottom:10px;">
       ${itemRows}

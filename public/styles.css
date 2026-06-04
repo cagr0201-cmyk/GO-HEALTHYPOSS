@@ -1950,10 +1950,7 @@ button, input, select, textarea {
   animation: pulse-glow 1s infinite alternate;
 }
 
-.channel-yemeksepeti { color: #EA004B; }
-.channel-getir { color: #5D3EBC; }
-.channel-trendyol { color: #F27A1A; }
-.channel-migros { color: #FF6600; }
+
 
 /* Paket Servis Sipariş Kartı Modalı */
 .delivery-order-box {
