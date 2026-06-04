@@ -1787,7 +1787,7 @@ button, input, select, textarea {
 .floating-qr-trigger {
   position: fixed;
   bottom: 24px;
-  left: 24px;
+  right: 24px;
   width: 54px;
   height: 54px;
   border-radius: 50%;
