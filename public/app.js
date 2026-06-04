@@ -88,12 +88,14 @@ socket.on('new_kitchen_ticket', (data) => {
 });
 
 socket.on('kitchen_ticket_ready', (data) => {
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Patron') return;
   showToast(`${data.tableName} siparişi hazır! Servis edebilirsiniz.`, 'info');
   playOrderBeep();
 });
 
 // Live delivery notification listener
 socket.on('incoming_delivery_alert', (data) => {
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Patron') return;
   triggerIncomingDeliveryClient(data.channelId, data.order);
 });
 
@@ -256,6 +258,31 @@ function initUIElements() {
   changeReportPeriod('today');
 }
 
+function updateSidebarForRole(role) {
+  const navTables = document.getElementById('nav-tables');
+  const navPos = document.getElementById('nav-pos');
+  const navKitchen = document.getElementById('nav-kitchen');
+  const navDashboard = document.getElementById('nav-dashboard');
+  const navSettings = document.getElementById('nav-settings');
+  
+  if (role === 'Patron') {
+    if (navTables) navTables.style.display = 'none';
+    if (navPos) navPos.style.display = 'none';
+    if (navKitchen) navKitchen.style.display = 'none';
+    if (navSettings) navSettings.style.display = 'none';
+    if (navDashboard) navDashboard.style.display = 'flex';
+    if (AppState.activeView !== 'dashboard') {
+      switchScreen('dashboard');
+    }
+  } else {
+    if (navTables) navTables.style.display = 'flex';
+    if (navPos) navPos.style.display = 'flex';
+    if (navKitchen) navKitchen.style.display = 'flex';
+    if (navDashboard) navDashboard.style.display = 'flex';
+    if (navSettings) navSettings.style.display = 'flex';
+  }
+}
+
 function updateActiveStaffHeader() {
   const badge = document.getElementById('active-staff-badge');
   const avatar = document.getElementById('sidebar-staff-avatar');
@@ -265,9 +292,11 @@ function updateActiveStaffHeader() {
     badge.textContent = `${AppState.activeStaff.role}: ${AppState.activeStaff.name} (${isMesaide})`;
     avatar.textContent = AppState.activeStaff.name.charAt(0);
     avatar.title = `${AppState.activeStaff.name} (${AppState.activeStaff.role})`;
+    updateSidebarForRole(AppState.activeStaff.role);
   } else {
     badge.textContent = 'Personel Yok (Giriş Yapılmamış)';
     avatar.textContent = '?';
+    updateSidebarForRole('default');
   }
 }
 
@@ -285,6 +314,11 @@ async function fetchSalesHistoryFromServer() {
 }
 
 async function switchScreen(viewName) {
+  // Patron rolü Analiz (dashboard) dışındaki ekranlara geçemez
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Patron' && viewName !== 'dashboard') {
+    return;
+  }
+
   document.querySelectorAll('.screen').forEach(scr => scr.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
 
