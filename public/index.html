@@ -68,10 +68,6 @@
           <div id="active-staff-badge" style="background: rgba(139,92,246,0.15); border: 1px solid var(--accent-purple); color: var(--accent-purple); padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600;">
             Kasiyer: Elif (Mesaide değil)
           </div>
-          <button onclick="playOrderBeep(); showToast('Ses testi çalındı!', 'info')" class="time-box" style="cursor: pointer; border: 1px solid var(--border-light); background: rgba(255,255,255,0.05); color: var(--text-primary); transition: all 0.2s;" title="Ses Testi">
-            <i data-lucide="volume-2"></i>
-            <span>Ses Testi</span>
-          </button>
           <div class="time-box">
             <i data-lucide="clock"></i>
             <span id="current-time">00:00:00</span>
@@ -691,6 +687,14 @@
             <button class="pay-method-btn" id="method-card" onclick="setPaymentMethod('CARD')">
               <i data-lucide="credit-card" style="color: var(--accent-purple);"></i>
               <span>Kredi Kartı</span>
+            </button>
+            <button class="pay-method-btn" id="method-mealcard" onclick="setPaymentMethod('MEALCARD')">
+              <i data-lucide="nfc" style="color: var(--accent-cyan);"></i>
+              <span>Yemek Kartı</span>
+            </button>
+            <button class="pay-method-btn" id="method-other" onclick="setPaymentMethod('OTHER')">
+              <i data-lucide="more-horizontal" style="color: var(--accent-gold);"></i>
+              <span>Diğer</span>
             </button>
           </div>
 

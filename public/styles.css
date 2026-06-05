@@ -2413,6 +2413,16 @@ button, input, select, textarea {
   color: var(--accent-purple);
 }
 
+.ledger-badge.mealcard {
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--accent-cyan);
+}
+
+.ledger-badge.other {
+  background: rgba(212, 175, 55, 0.15);
+  color: var(--accent-gold);
+}
+
 .ledger-action-btn {
   background: rgba(6, 182, 212, 0.15);
   color: var(--accent-cyan);

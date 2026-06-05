@@ -1149,6 +1149,12 @@ function openCheckoutModal() {
   AppState.activePaymentMethod = 'CASH';
   document.getElementById('method-cash').classList.add('selected');
   document.getElementById('method-card').classList.remove('selected');
+  
+  const methodMeal = document.getElementById('method-mealcard');
+  const methodOther = document.getElementById('method-other');
+  if (methodMeal) methodMeal.classList.remove('selected');
+  if (methodOther) methodOther.classList.remove('selected');
+
   document.getElementById('cash-change-calculator').style.display = 'block';
 
   document.getElementById('modal-checkout').classList.add('active');
@@ -1156,13 +1162,25 @@ function openCheckoutModal() {
 
 function setPaymentMethod(method) {
   AppState.activePaymentMethod = method;
+  
+  document.getElementById('method-cash').classList.remove('selected');
+  document.getElementById('method-card').classList.remove('selected');
+  const methodMeal = document.getElementById('method-mealcard');
+  const methodOther = document.getElementById('method-other');
+  if (methodMeal) methodMeal.classList.remove('selected');
+  if (methodOther) methodOther.classList.remove('selected');
+
   if (method === 'CASH') {
     document.getElementById('method-cash').classList.add('selected');
-    document.getElementById('method-card').classList.remove('selected');
     document.getElementById('cash-change-calculator').style.display = 'block';
-  } else {
-    document.getElementById('method-cash').classList.remove('selected');
+  } else if (method === 'CARD') {
     document.getElementById('method-card').classList.add('selected');
+    document.getElementById('cash-change-calculator').style.display = 'none';
+  } else if (method === 'MEALCARD') {
+    if (methodMeal) methodMeal.classList.add('selected');
+    document.getElementById('cash-change-calculator').style.display = 'none';
+  } else if (method === 'OTHER') {
+    if (methodOther) methodOther.classList.add('selected');
     document.getElementById('cash-change-calculator').style.display = 'none';
   }
 }
@@ -1309,7 +1327,8 @@ async function printReceipt(tx, type = 'receipt') {
       `;
     });
 
-    const methodText = tx.paymentMethod === 'CASH' ? 'NAKİT' : 'KREDİ KARTI';
+    const payMap = { CASH: 'NAKİT', CARD: 'KREDİ KARTI', MEALCARD: 'YEMEK KARTI', OTHER: 'DİĞER' };
+    const methodText = payMap[tx.paymentMethod] || 'NAKİT';
 
     printSection.innerHTML = `
       <div class="receipt-paper" style="width: 80mm; padding: 10px; background:#fff; color:#000; font-family:monospace; margin:0 auto; box-sizing:border-box;">
@@ -1389,7 +1408,8 @@ function generateReceiptHTML(tx) {
     `;
   });
 
-  const methodText = tx.paymentMethod === 'CASH' ? 'NAKİT' : 'KREDİ KARTI';
+  const payMap = { CASH: 'NAKİT', CARD: 'KREDİ KARTI', MEALCARD: 'YEMEK KARTI', OTHER: 'DİĞER' };
+  const methodText = payMap[tx.paymentMethod] || 'NAKİT';
   
   receiptEl.innerHTML = `
     <div class="receipt-header">
@@ -2820,7 +2840,7 @@ function renderLedgerTable() {
   }
 
   const typeMap = { 'dine-in': 'Masaya Servis', 'takeaway': 'Gel-Al', 'delivery': 'Adrese Paket' };
-  const payMap = { 'CASH': 'Nakit', 'CARD': 'Kredi Kartı' };
+  const payMap = { 'CASH': 'Nakit', 'CARD': 'Kredi Kartı', 'MEALCARD': 'Yemek Kartı', 'OTHER': 'Diğer' };
 
   ledgerData.forEach(tx => {
     const tr = document.createElement('tr');
@@ -2896,7 +2916,7 @@ function exportLedgerToCSV() {
   }
 
   const typeMap = { 'dine-in': 'Masaya Servis', 'takeaway': 'Gel-Al', 'delivery': 'Adrese Paket' };
-  const payMap = { 'CASH': 'Nakit', 'CARD': 'Kredi Kartı' };
+  const payMap = { 'CASH': 'Nakit', 'CARD': 'Kredi Kartı', 'MEALCARD': 'Yemek Kartı', 'OTHER': 'Diğer' };
 
   let csvContent = "\ufeff"; // UTF-8 BOM for Excel
   csvContent += "Fiş / TX ID,Tarih & Saat,Masa / Kanal,Personel,Hizmet Tipi,Ödeme Tipi,İndirim %,Toplam Tutar\n";
