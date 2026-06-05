@@ -294,8 +294,8 @@ app.post('/api/staff/shift', async (req, res) => {
       return res.status(401).json({ error: 'Hatalı PIN kodu!' });
     }
 
-    const nextStatus = staff.status === 'in' ? 'out' : 'in';
-    const shiftStart = nextStatus === 'in' ? new Date().toISOString() : null;
+    const nextStatus = 'in';
+    const shiftStart = staff.status !== 'in' ? new Date().toISOString() : staff.shiftStart;
 
     await db.run(`UPDATE staff SET status = ?, shiftStart = ? WHERE id = ?`, [nextStatus, shiftStart, staff.id]);
 

@@ -684,7 +684,7 @@ async function initDatabase() {
   // Force reset/sync staff members as requested by user
   await run(`DELETE FROM staff`);
   const defaultStaff = [
-    { id: 'garson', name: 'go healthy', role: 'Garson', code: '1256', status: 'out', shiftStart: null },
+    { id: 'garson', name: 'go healthy', role: 'Garson', code: '1256', status: 'in', shiftStart: new Date().toISOString() },
     { id: 'mudur', name: 'çağrı', role: 'Müdür', code: '7879', status: 'in', shiftStart: new Date().toISOString() },
     { id: 'patron', name: 'arif', role: 'Patron', code: '2529', status: 'in', shiftStart: new Date().toISOString() }
   ];

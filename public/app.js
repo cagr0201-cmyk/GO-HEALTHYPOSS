@@ -303,11 +303,11 @@ function updateSidebarForRole(role) {
 function resolveActiveStaff() {
   const localActiveStaffId = localStorage.getItem('localActiveStaffId');
   if (localActiveStaffId) {
-    const localStaff = AppState.staffMembers.find(s => s.id === localActiveStaffId && s.status === 'in');
+    const localStaff = AppState.staffMembers.find(s => s.id === localActiveStaffId);
     if (localStaff) return localStaff;
   }
   // Fallback: exclude Patron from automatic fallback
-  const fallbackStaff = AppState.staffMembers.find(s => s.status === 'in' && s.role !== 'Patron');
+  const fallbackStaff = AppState.staffMembers.find(s => s.role !== 'Patron');
   return fallbackStaff || null;
 }
 
@@ -316,8 +316,7 @@ function updateActiveStaffHeader() {
   const avatar = document.getElementById('sidebar-staff-avatar');
   
   if (AppState.activeStaff) {
-    const isMesaide = AppState.activeStaff.status === 'in' ? 'Mesaide' : 'Mola';
-    badge.textContent = `${AppState.activeStaff.role}: ${AppState.activeStaff.name} (${isMesaide})`;
+    badge.textContent = `${AppState.activeStaff.role}: ${AppState.activeStaff.name}`;
     avatar.textContent = AppState.activeStaff.name.charAt(0);
     avatar.title = `${AppState.activeStaff.name} (${AppState.activeStaff.role})`;
     updateSidebarForRole(AppState.activeStaff.role);
@@ -1630,15 +1629,8 @@ async function submitPin() {
     if (data.success) {
       const staffName = data.staff.name;
       const staffRole = data.staff.role;
-      if (data.staff.status === 'in') {
-        localStorage.setItem('localActiveStaffId', data.staff.id);
-        showToast(`${staffName} (${staffRole}) mesaiye başladı.`, 'success');
-      } else {
-        if (localStorage.getItem('localActiveStaffId') === data.staff.id) {
-          localStorage.removeItem('localActiveStaffId');
-        }
-        showToast(`${staffName} mesaiyi tamamladı. İyi istirahatler!`, 'info');
-      }
+      localStorage.setItem('localActiveStaffId', data.staff.id);
+      showToast(`${staffName} (${staffRole}) giriş yaptı.`, 'success');
       closeModal('modal-staff-pin');
     }
   } catch (err) {
