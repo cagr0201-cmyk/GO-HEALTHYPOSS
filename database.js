@@ -681,18 +681,15 @@ async function initDatabase() {
     }
   }
 
-  const staffCount = await get(`SELECT COUNT(*) as count FROM staff`);
-  if (Number(staffCount.count) === 0) {
-    const defaultStaff = [
-      { id: 'ahmet', name: 'Ahmet Yılmaz', role: 'Şef Garson', code: '1111', status: 'in', shiftStart: new Date().toISOString() },
-      { id: 'merve', name: 'Merve Kaya', role: 'Garson', code: '2222', status: 'out', shiftStart: null },
-      { id: 'can', name: 'Can Demir', role: 'Garson', code: '3333', status: 'out', shiftStart: null },
-      { id: 'elif', name: 'Elif Şahin', role: 'Kasiyer', code: '4444', status: 'in', shiftStart: new Date().toISOString() },
-      { id: 'patron', name: 'Patron (Yönetici)', role: 'Patron', code: '9999', status: 'in', shiftStart: new Date().toISOString() }
-    ];
-    for (const st of defaultStaff) {
-      await run(`INSERT INTO staff (id, name, role, code, status, shiftStart) VALUES (?, ?, ?, ?, ?, ?)`, [st.id, st.name, st.role, st.code, st.status, st.shiftStart]);
-    }
+  // Force reset/sync staff members as requested by user
+  await run(`DELETE FROM staff`);
+  const defaultStaff = [
+    { id: 'garson', name: 'go healthy', role: 'Garson', code: '1256', status: 'out', shiftStart: null },
+    { id: 'mudur', name: 'çağrı', role: 'Müdür', code: '7879', status: 'in', shiftStart: new Date().toISOString() },
+    { id: 'patron', name: 'arif', role: 'Patron', code: '2529', status: 'in', shiftStart: new Date().toISOString() }
+  ];
+  for (const st of defaultStaff) {
+    await run(`INSERT INTO staff (id, name, role, code, status, shiftStart) VALUES (?, ?, ?, ?, ?, ?)`, [st.id, st.name, st.role, st.code, st.status, st.shiftStart]);
   }
 
   const salesHistoryCount = await get(`SELECT COUNT(*) as count FROM sales_history`);

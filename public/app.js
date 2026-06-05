@@ -103,7 +103,7 @@ socket.on('incoming_delivery_alert', (data) => {
 
 // Live remote print request listener
 socket.on('remote_print_request', (data) => {
-  if (AppState.activeStaff && AppState.activeStaff.role === 'Kasiyer') {
+  if (AppState.activeStaff && (AppState.activeStaff.role === 'Kasiyer' || AppState.activeStaff.role === 'Müdür')) {
     printReceipt(data.tx, data.type);
   }
 });
@@ -602,7 +602,7 @@ function renderCart() {
   mergeBtn.disabled = AppState.selectedTable ? false : true; // Hızlı satışta masa birleştirme pasiftir
 
   const waiterSelect = document.getElementById('cart-waiter-select');
-  waiterSelect.value = activeOrder.waiterId || 'ahmet';
+  waiterSelect.value = activeOrder.waiterId || 'garson';
 
   document.querySelectorAll('.cart-type-btn').forEach(btn => {
     if (btn.id === `btn-${activeOrder.orderType}`) btn.classList.add('active');
@@ -1192,7 +1192,7 @@ async function processPaymentAndPrint() {
 function isPrinterConnected() {
   const isElectron = (typeof window !== 'undefined' && window.process && window.process.type) || (navigator.userAgent.includes('Electron'));
   if (isElectron) return true;
-  if (AppState.activeStaff && AppState.activeStaff.role === 'Kasiyer') return true;
+  if (AppState.activeStaff && (AppState.activeStaff.role === 'Kasiyer' || AppState.activeStaff.role === 'Müdür')) return true;
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return true;
   return false;
 }
@@ -1706,7 +1706,7 @@ function sendQRMenuOrder() {
       items: [],
       discount: 0,
       orderType: 'dine-in',
-      waiterId: 'ahmet' // QR siparişleri varsayılan olarak şef garsona atanır
+      waiterId: 'garson' // QR siparişleri varsayılan olarak garsona atanır
     };
   }
 
@@ -2144,7 +2144,7 @@ async function acceptDeliveryOrder() {
         }),
         discount: 0,
         orderType: 'delivery',
-        waiterId: 'elif'
+        waiterId: 'mudur'
       })
     });
 
