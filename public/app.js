@@ -1,4 +1,14 @@
 // Go Healthy POS
+// Add "Extralar" category for POS panel only
+if (typeof MENU_CATEGORIES !== 'undefined') {
+  if (!MENU_CATEGORIES.some(cat => cat.id === 'extras')) {
+    MENU_CATEGORIES.push({
+      id: 'extras',
+      name: 'EKSTRALAR',
+      icon: '✨'
+    });
+  }
+}
 // State ve Temel Mekanizmalar
 
 let AppState = {

@@ -667,6 +667,106 @@ async function initDatabase() {
     "image": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=400&q=80",
     "popular": 0,
     "options": []
+  },
+  {
+    "id": "extra-10",
+    "categoryId": "extras",
+    "name": "+10 TL Ekstra",
+    "price": 10,
+    "description": "Ekstra ücret",
+    "image": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80",
+    "popular": 0,
+    "options": []
+  },
+  {
+    "id": "extra-20",
+    "categoryId": "extras",
+    "name": "+20 TL Ekstra",
+    "price": 20,
+    "description": "Ekstra ücret",
+    "image": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80",
+    "popular": 0,
+    "options": []
+  },
+  {
+    "id": "extra-30",
+    "categoryId": "extras",
+    "name": "+30 TL Ekstra",
+    "price": 30,
+    "description": "Ekstra ücret",
+    "image": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80",
+    "popular": 0,
+    "options": []
+  },
+  {
+    "id": "extra-40",
+    "categoryId": "extras",
+    "name": "+40 TL Ekstra",
+    "price": 40,
+    "description": "Ekstra ücret",
+    "image": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80",
+    "popular": 0,
+    "options": []
+  },
+  {
+    "id": "extra-50",
+    "categoryId": "extras",
+    "name": "+50 TL Ekstra",
+    "price": 50,
+    "description": "Ekstra ücret",
+    "image": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80",
+    "popular": 0,
+    "options": []
+  },
+  {
+    "id": "extra-60",
+    "categoryId": "extras",
+    "name": "+60 TL Ekstra",
+    "price": 60,
+    "description": "Ekstra ücret",
+    "image": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80",
+    "popular": 0,
+    "options": []
+  },
+  {
+    "id": "extra-70",
+    "categoryId": "extras",
+    "name": "+70 TL Ekstra",
+    "price": 70,
+    "description": "Ekstra ücret",
+    "image": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80",
+    "popular": 0,
+    "options": []
+  },
+  {
+    "id": "extra-80",
+    "categoryId": "extras",
+    "name": "+80 TL Ekstra",
+    "price": 80,
+    "description": "Ekstra ücret",
+    "image": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80",
+    "popular": 0,
+    "options": []
+  },
+  {
+    "id": "extra-90",
+    "categoryId": "extras",
+    "name": "+90 TL Ekstra",
+    "price": 90,
+    "description": "Ekstra ücret",
+    "image": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80",
+    "popular": 0,
+    "options": []
+  },
+  {
+    "id": "extra-100",
+    "categoryId": "extras",
+    "name": "+100 TL Ekstra",
+    "price": 100,
+    "description": "Ekstra ücret",
+    "image": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80",
+    "popular": 0,
+    "options": []
   }
 ];
     for (const m of defaultMenuItems) {
