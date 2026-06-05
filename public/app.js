@@ -159,6 +159,11 @@ async function saveActiveOrderToServer(tableId) {
   const order = AppState.activeOrders[tableId];
   try {
     if (!order || !order.items || order.items.length === 0) {
+      delete AppState.activeOrders[tableId];
+      if (tableId !== 'quick') {
+        const table = AppState.tables.find(t => t.id === tableId);
+        if (table) table.status = 'free';
+      }
       await fetch(`/api/orders/${tableId}`, { method: 'DELETE' });
     } else {
       await fetch('/api/orders', {
@@ -733,7 +738,7 @@ async function updateCartItemQty(tableId, index, delta) {
   
   if (order.items.length === 0) {
     delete AppState.activeOrders[tableId];
-    if (AppState.selectedTable) {
+    if (tableId !== 'quick') {
       const table = AppState.tables.find(t => t.id === tableId);
       if (table) table.status = 'free';
     }
@@ -756,7 +761,7 @@ async function removeCartItem(tableId, index) {
   
   if (order.items.length === 0) {
     delete AppState.activeOrders[tableId];
-    if (AppState.selectedTable) {
+    if (tableId !== 'quick') {
       const table = AppState.tables.find(t => t.id === tableId);
       if (table) table.status = 'free';
     }
@@ -1155,6 +1160,11 @@ async function processPaymentAndPrint() {
     });
     
     if (response.ok) {
+      delete AppState.activeOrders[tableId];
+      if (tableId !== 'quick') {
+        const table = AppState.tables.find(t => t.id === tableId);
+        if (table) table.status = 'free';
+      }
       closeModal('modal-checkout');
       generateReceiptHTML(transaction);
       document.getElementById('modal-receipt').classList.add('active');
