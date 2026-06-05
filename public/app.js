@@ -17,7 +17,8 @@ let AppState = {
   currentPinInput: '',    // PIN modalı için geçici tuşlama verisi
   selectedSplitItems: [], // Bölünecek seçili adisyon kalemleri listesi
   reportPeriod: 'today',  // Rapor dönemi ('today', 'yesterday', 'week', 'month', 'year', 'custom')
-  dashboardSubTab: 'charts', // Dashboard alt sekmesi ('charts', 'ledger')
+  dashboardSubTab: 'charts', // Dashboard alt sekmesi ('charts', 'ledger', 'expenses')
+  expenses: [],           // Restoran giderleri
   charts: {
     trends: null,
     share: null
@@ -57,6 +58,7 @@ socket.on('sync_state', (data) => {
   AppState.stocks = data.stocks;
   AppState.staffMembers = data.staffMembers;
   AppState.stockStatus = data.stockStatus;
+  AppState.expenses = data.expenses || [];
 
   const loggedInStaff = AppState.staffMembers.find(s => s.status === 'in');
   AppState.activeStaff = loggedInStaff || null;
@@ -2346,29 +2348,47 @@ function switchDashboardTab(tabName) {
   
   const tabCharts = document.getElementById('tab-db-charts');
   const tabLedger = document.getElementById('tab-db-ledger');
+  const tabExpenses = document.getElementById('tab-db-expenses');
   
   const viewCharts = document.getElementById('db-view-charts');
   const viewLedger = document.getElementById('db-view-ledger');
+  const viewExpenses = document.getElementById('db-view-expenses');
   
+  if (tabCharts) tabCharts.classList.remove('active');
+  if (tabLedger) tabLedger.classList.remove('active');
+  if (tabExpenses) tabExpenses.classList.remove('active');
+  
+  if (viewCharts) viewCharts.style.display = 'none';
+  if (viewLedger) viewLedger.style.display = 'none';
+  if (viewExpenses) viewExpenses.style.display = 'none';
+
   if (tabName === 'charts') {
     if (tabCharts) tabCharts.classList.add('active');
-    if (tabLedger) tabLedger.classList.remove('active');
     if (viewCharts) viewCharts.style.display = 'block';
-    if (viewLedger) viewLedger.style.display = 'none';
     renderDashboard();
-  } else {
-    if (tabCharts) tabCharts.classList.remove('active');
+  } else if (tabName === 'ledger') {
     if (tabLedger) tabLedger.classList.add('active');
-    if (viewCharts) viewCharts.style.display = 'none';
     if (viewLedger) viewLedger.style.display = 'block';
     renderLedgerTable();
+  } else if (tabName === 'expenses') {
+    if (tabExpenses) tabExpenses.classList.add('active');
+    if (viewExpenses) viewExpenses.style.display = 'block';
+    const dateInput = document.getElementById('expense-date');
+    if (dateInput && !dateInput.value) {
+      dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    renderExpensesTable();
   }
 }
 
 function renderDashboard() {
   const filteredSales = filterHistoryByPeriod();
+  const filteredExpenses = filterExpensesByPeriod();
   
   const totalRevenue = filteredSales.reduce((sum, tx) => sum + tx.total, 0);
+  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const netProfit = totalRevenue - totalExpenses;
+
   const totalOrders = filteredSales.length;
   const avgCheck = totalOrders > 0 ? totalRevenue / totalOrders : 0;
   
@@ -2376,35 +2396,57 @@ function renderDashboard() {
   const occupancyRate = AppState.tables.length > 0 ? Math.round((occupiedTables / AppState.tables.length) * 100) : 0;
 
   const revEl = document.getElementById('metric-revenue');
+  const expEl = document.getElementById('metric-expense');
+  const prfEl = document.getElementById('metric-profit');
   const ordEl = document.getElementById('metric-orders');
   const avgEl = document.getElementById('metric-avg-check');
   const occEl = document.getElementById('metric-occupancy');
 
   if (revEl) revEl.textContent = `${totalRevenue.toFixed(2)} ₺`;
+  if (expEl) expEl.textContent = `${totalExpenses.toFixed(2)} ₺`;
+  if (prfEl) prfEl.textContent = `${netProfit.toFixed(2)} ₺`;
   if (ordEl) ordEl.textContent = totalOrders;
   if (avgEl) avgEl.textContent = `${avgCheck.toFixed(2)} ₺`;
   if (occEl) occEl.textContent = `${occupancyRate}%`;
 
   const revTitle = document.getElementById('revenue-metric-title');
+  const expTitle = document.getElementById('expense-metric-title');
+  const prfTitle = document.getElementById('profit-metric-title');
   const period = AppState.reportPeriod;
+
   if (revTitle) {
-    if (period === 'today') {
-      revTitle.textContent = "Bugünkü Toplam Ciro";
-    } else if (period === 'yesterday') {
-      revTitle.textContent = "Dünkü Toplam Ciro";
-    } else if (period === 'week') {
-      revTitle.textContent = "Son 7 Günlük Toplam Ciro";
-    } else if (period === 'month') {
-      revTitle.textContent = "Bu Ayki Toplam Ciro";
-    } else if (period === 'year') {
-      revTitle.textContent = "Yıllık Toplam Ciro (2026)";
-    } else {
-      revTitle.textContent = "Seçili Dönem Toplam Ciro";
-    }
+    if (period === 'today') revTitle.textContent = "Bugünkü Toplam Ciro";
+    else if (period === 'yesterday') revTitle.textContent = "Dünkü Toplam Ciro";
+    else if (period === 'week') revTitle.textContent = "Son 7 Günlük Toplam Ciro";
+    else if (period === 'month') revTitle.textContent = "Bu Ayki Toplam Ciro";
+    else if (period === 'year') revTitle.textContent = "Yıllık Toplam Ciro (2026)";
+    else revTitle.textContent = "Seçili Dönem Toplam Ciro";
+  }
+
+  if (expTitle) {
+    if (period === 'today') expTitle.textContent = "Bugünkü Toplam Gider";
+    else if (period === 'yesterday') expTitle.textContent = "Dünkü Toplam Gider";
+    else if (period === 'week') expTitle.textContent = "Son 7 Günlük Toplam Gider";
+    else if (period === 'month') expTitle.textContent = "Bu Ayki Toplam Gider";
+    else if (period === 'year') expTitle.textContent = "Yıllık Toplam Gider (2026)";
+    else expTitle.textContent = "Seçili Dönem Toplam Gider";
+  }
+
+  if (prfTitle) {
+    if (period === 'today') prfTitle.textContent = "Bugünkü Net Kâr";
+    else if (period === 'yesterday') prfTitle.textContent = "Dünkü Net Kâr";
+    else if (period === 'week') prfTitle.textContent = "Son 7 Günlük Net Kâr";
+    else if (period === 'month') prfTitle.textContent = "Bu Ayki Net Kâr";
+    else if (period === 'year') prfTitle.textContent = "Yıllık Net Kâr (2026)";
+    else prfTitle.textContent = "Seçili Dönem Net Kâr";
   }
 
   renderCharts(filteredSales);
   renderTopItemsTable(filteredSales);
+
+  if (AppState.dashboardSubTab === 'expenses') {
+    renderExpensesTable();
+  }
 }
 
 function renderCharts(filteredSales) {
@@ -3091,4 +3133,137 @@ function renderActiveDeliveries() {
     container.appendChild(card);
   });
   lucide.createIcons();
+}
+
+// --- RESTORAN GİDER TAKİBİ FONKSİYONLARI ---
+
+function filterExpensesByPeriod() {
+  const startVal = document.getElementById('filter-start-date').value;
+  const endVal = document.getElementById('filter-end-date').value;
+  
+  const expenses = AppState.expenses || [];
+  if (!startVal || !endVal) {
+    return expenses;
+  }
+
+  const startLimit = new Date(startVal + 'T00:00:00');
+  const endLimit = new Date(endVal + 'T23:59:59.999');
+
+  return expenses.filter(exp => {
+    const expDate = new Date(exp.timestamp);
+    return expDate >= startLimit && expDate <= endLimit;
+  });
+}
+
+function renderExpensesTable() {
+  const tbody = document.getElementById('expense-list-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const filtered = filterExpensesByPeriod();
+  const total = filtered.reduce((sum, e) => sum + e.amount, 0);
+
+  const totalBadge = document.getElementById('expense-total-badge');
+  if (totalBadge) {
+    totalBadge.textContent = `Toplam: ${total.toFixed(2)} ₺`;
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center; padding: 20px; color: var(--text-secondary);">
+          Seçili dönemde girilmiş gider bulunmuyor.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  filtered.forEach(exp => {
+    const tr = document.createElement('tr');
+    const dateStr = new Date(exp.timestamp).toLocaleDateString('tr-TR');
+    tr.innerHTML = `
+      <td>${dateStr}</td>
+      <td style="font-weight: 500;">${exp.description}</td>
+      <td><span class="ledger-badge dine-in" style="background: rgba(255,255,255,0.05); color:#fff; border:1px solid var(--border-light); font-size:11px;">${exp.category}</span></td>
+      <td style="font-weight: 700; color: var(--status-busy);">${exp.amount.toFixed(2)} ₺</td>
+      <td>
+        <button class="expense-delete-btn" onclick="deleteExpense('${exp.id}')">
+          <i data-lucide="trash-2" style="width:12px; height:12px;"></i> Sil
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  lucide.createIcons();
+}
+
+async function handleExpenseSubmit(event) {
+  event.preventDefault();
+
+  const descInput = document.getElementById('expense-desc');
+  const amountInput = document.getElementById('expense-amount');
+  const catSelect = document.getElementById('expense-category');
+  const dateInput = document.getElementById('expense-date');
+
+  const description = descInput.value.trim();
+  const amount = parseFloat(amountInput.value);
+  const category = catSelect.value;
+  const dateVal = dateInput.value;
+
+  if (!description || isNaN(amount) || amount <= 0 || !category || !dateVal) {
+    showToast('Lütfen tüm alanları geçerli değerlerle doldurun!', 'warning');
+    return;
+  }
+
+  const staffId = AppState.activeStaff ? AppState.activeStaff.id : '';
+  const timestamp = new Date(dateVal + 'T12:00:00').toISOString();
+
+  try {
+    const response = await fetch('/api/expenses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        description,
+        amount,
+        category,
+        staffId,
+        timestamp
+      })
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      showToast('Gider başarıyla kaydedildi.', 'success');
+      descInput.value = '';
+      amountInput.value = '';
+      dateInput.value = new Date().toISOString().split('T')[0];
+    } else {
+      showToast(result.error || 'Gider kaydedilemedi!', 'error');
+    }
+  } catch (err) {
+    console.error('Error adding expense:', err);
+    showToast('Gider kaydedilemedi!', 'error');
+  }
+}
+
+async function deleteExpense(id) {
+  if (!confirm('Bu gider kaydını silmek istediğinize emin misiniz?')) return;
+
+  try {
+    const response = await fetch(`/api/expenses/${id}`, {
+      method: 'DELETE'
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      showToast('Gider kaydı silindi.', 'success');
+    } else {
+      showToast(result.error || 'Gider silinemedi!', 'error');
+    }
+  } catch (err) {
+    console.error('Error deleting expense:', err);
+    showToast('Gider silinemedi!', 'error');
+  }
 }

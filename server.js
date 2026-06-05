@@ -373,6 +373,46 @@ app.post('/api/settings/reset', async (req, res) => {
   }
 });
 
+// Expense Management APIs
+app.get('/api/expenses', async (req, res) => {
+  try {
+    const expenses = await db.all("SELECT * FROM expenses ORDER BY timestamp DESC");
+    res.json(expenses);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/expenses', async (req, res) => {
+  const { description, amount, category, staffId, timestamp } = req.body;
+  try {
+    const id = 'EXP-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    const ts = timestamp || new Date().toISOString();
+    await db.run(
+      `INSERT INTO expenses (id, description, amount, category, timestamp, staffId)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, description, Number(amount), category, ts, staffId || '']
+    );
+    const state = await db.getAppState();
+    io.emit('sync_state', state);
+    res.json({ success: true, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/expenses/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.run(`DELETE FROM expenses WHERE id = ?`, [id]);
+    const state = await db.getAppState();
+    io.emit('sync_state', state);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Aggregated delivery channel simulation hook
 app.post('/api/delivery/simulate', (req, res) => {
   const { channelId, order } = req.body;

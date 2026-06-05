@@ -272,6 +272,26 @@
               <i data-lucide="turkish-lira"></i>
             </div>
           </div>
+
+          <div class="metric-card red">
+            <div class="metric-info">
+              <h3 id="expense-metric-title">Toplam Gider</h3>
+              <div class="metric-value" id="metric-expense">0.00 ₺</div>
+            </div>
+            <div class="metric-icon">
+              <i data-lucide="trending-down" style="color: var(--status-busy);"></i>
+            </div>
+          </div>
+
+          <div class="metric-card green">
+            <div class="metric-info">
+              <h3 id="profit-metric-title">Net Kâr</h3>
+              <div class="metric-value" id="metric-profit">0.00 ₺</div>
+            </div>
+            <div class="metric-icon">
+              <i data-lucide="trending-up" style="color: var(--status-free);"></i>
+            </div>
+          </div>
           
           <div class="metric-card pink">
             <div class="metric-info">
@@ -308,6 +328,7 @@
         <div class="dashboard-tabs">
           <span class="dashboard-tab-item active" id="tab-db-charts" onclick="switchDashboardTab('charts')">Ciro & Satış Raporu</span>
           <span class="dashboard-tab-item" id="tab-db-ledger" onclick="switchDashboardTab('ledger')">Geçmiş Adisyon Defteri</span>
+          <span class="dashboard-tab-item" id="tab-db-expenses" onclick="switchDashboardTab('expenses')">Gider Takibi</span>
         </div>
 
         <!-- SEÇENEK 1: GRAFİKLER VE CIRO ANALİZİ -->
@@ -392,6 +413,71 @@
                   <!-- Dinamik geçmiş faturalar listesi -->
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇENEK 3: GİDER TAKİBİ PANELİ -->
+        <div id="db-view-expenses" style="display: none;">
+          <div class="expenses-dashboard-layout">
+            <!-- Sol: Gider Ekleme Formu -->
+            <div class="expense-form-card">
+              <div class="chart-header">
+                <h2>Gider Kaydet</h2>
+              </div>
+              <form id="expense-add-form" onsubmit="handleExpenseSubmit(event)">
+                <div class="form-group">
+                  <label for="expense-desc">Açıklama / Başlık</label>
+                  <input type="text" id="expense-desc" required placeholder="Örn: Manav Alımı, Elektrik Faturası">
+                </div>
+                <div class="form-group-row">
+                  <div class="form-group">
+                    <label for="expense-amount">Tutar (₺)</label>
+                    <input type="number" id="expense-amount" min="0.01" step="0.01" required placeholder="0.00">
+                  </div>
+                  <div class="form-group">
+                    <label for="expense-category">Kategori</label>
+                    <select id="expense-category" required>
+                      <option value="Malzeme">Malzeme / Hammadde</option>
+                      <option value="Fatura">Fatura / Abonelik</option>
+                      <option value="Personel">Personel / Maaş</option>
+                      <option value="Kira">Kira / Gider</option>
+                      <option value="Diğer">Diğer</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="expense-date">Gider Tarihi</label>
+                  <input type="date" id="expense-date" required>
+                </div>
+                <button type="submit" class="modal-btn modal-btn-confirm" style="width: 100%; margin-top: 10px; border-radius: 8px;">
+                  <i data-lucide="plus-circle" style="width:16px; height:16px; display:inline-block; vertical-align:middle; margin-right:4px;"></i> Gider Ekle
+                </button>
+              </form>
+            </div>
+            
+            <!-- Sağ: Gider Listesi -->
+            <div class="expense-list-card">
+              <div class="chart-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                <h2 id="expense-list-title">Seçili Dönem Giderleri</h2>
+                <span class="ledger-total-badge" id="expense-total-badge" style="background: var(--status-busy-glow); border: 1px solid var(--status-busy); color: #fff; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 13px;">Toplam: 0.00 ₺</span>
+              </div>
+              <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="ledger-table" style="width: 100%;">
+                  <thead>
+                    <tr>
+                      <th>Tarih</th>
+                      <th>Açıklama</th>
+                      <th>Kategori</th>
+                      <th>Tutar</th>
+                      <th>İşlem</th>
+                    </tr>
+                  </thead>
+                  <tbody id="expense-list-tbody">
+                    <!-- Dinamik Gider Listesi Satırları -->
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

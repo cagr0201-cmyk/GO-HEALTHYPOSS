@@ -180,6 +180,15 @@ async function initDatabase() {
     shiftStart TEXT
   )`);
 
+  await run(`CREATE TABLE IF NOT EXISTS expenses (
+    id TEXT PRIMARY KEY,
+    description TEXT,
+    amount REAL,
+    category TEXT,
+    timestamp TEXT,
+    staffId TEXT
+  )`);
+
   // Seed default data
   const tablesCount = await get(`SELECT COUNT(*) as count FROM tables`);
   if (Number(tablesCount.count) === 0) {
@@ -867,6 +876,8 @@ async function getAppState() {
     };
   });
 
+  const expenses = await all(`SELECT * FROM expenses ORDER BY timestamp DESC`);
+
   const stockStatus = await getStockStatus();
 
   return {
@@ -876,7 +887,8 @@ async function getAppState() {
     staffMembers: staff,
     kitchenOrders,
     activeOrders,
-    stockStatus
+    stockStatus,
+    expenses
   };
 }
 
