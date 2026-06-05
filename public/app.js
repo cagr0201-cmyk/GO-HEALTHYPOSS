@@ -60,8 +60,7 @@ socket.on('sync_state', (data) => {
   AppState.stockStatus = data.stockStatus;
   AppState.expenses = data.expenses || [];
 
-  const loggedInStaff = AppState.staffMembers.find(s => s.status === 'in');
-  AppState.activeStaff = loggedInStaff || null;
+  AppState.activeStaff = resolveActiveStaff();
   updateActiveStaffHeader();
 
   AppState.tables.forEach(table => {
@@ -83,6 +82,7 @@ socket.on('sync_state', (data) => {
 
 // Live KDS socket notification listeners
 socket.on('new_kitchen_ticket', (data) => {
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Patron') return;
   showToast(`Yeni Mutfak Siparişi! ${data.tableName} siparişi iletildi.`, 'success');
   if (data.waiterId === 'Müşteri') {
     startOrderSoundLoop();
@@ -133,8 +133,7 @@ async function fetchAppState() {
       connectionQR.innerHTML = `<img src="${qrUrl}" alt="Sunucu Bağlantı QR" style="width:110px; height:110px; border-radius:4px;">`;
     }
 
-    const loggedInStaff = AppState.staffMembers.find(s => s.status === 'in');
-    AppState.activeStaff = loggedInStaff || null;
+    AppState.activeStaff = resolveActiveStaff();
     updateActiveStaffHeader();
 
     AppState.tables.forEach(table => {
@@ -301,6 +300,17 @@ function updateSidebarForRole(role) {
   }
 }
 
+function resolveActiveStaff() {
+  const localActiveStaffId = localStorage.getItem('localActiveStaffId');
+  if (localActiveStaffId) {
+    const localStaff = AppState.staffMembers.find(s => s.id === localActiveStaffId && s.status === 'in');
+    if (localStaff) return localStaff;
+  }
+  // Fallback: exclude Patron from automatic fallback
+  const fallbackStaff = AppState.staffMembers.find(s => s.status === 'in' && s.role !== 'Patron');
+  return fallbackStaff || null;
+}
+
 function updateActiveStaffHeader() {
   const badge = document.getElementById('active-staff-badge');
   const avatar = document.getElementById('sidebar-staff-avatar');
@@ -425,6 +435,10 @@ function renderTableMap() {
     `;
     
     tableDiv.onclick = () => {
+      if (AppState.activeStaff && AppState.activeStaff.role === 'Patron') {
+        showToast('Patron yetkisi ile masalara müdahale edilemez!', 'warning');
+        return;
+      }
       AppState.selectedTable = table;
       switchScreen('pos');
     };
@@ -1617,8 +1631,12 @@ async function submitPin() {
       const staffName = data.staff.name;
       const staffRole = data.staff.role;
       if (data.staff.status === 'in') {
+        localStorage.setItem('localActiveStaffId', data.staff.id);
         showToast(`${staffName} (${staffRole}) mesaiye başladı.`, 'success');
       } else {
+        if (localStorage.getItem('localActiveStaffId') === data.staff.id) {
+          localStorage.removeItem('localActiveStaffId');
+        }
         showToast(`${staffName} mesaiyi tamamladı. İyi istirahatler!`, 'info');
       }
       closeModal('modal-staff-pin');
@@ -1766,6 +1784,7 @@ function sendQRMenuOrder() {
 
 // --- ONLINE SİPARİŞ KANALLARI ---
 function triggerIncomingDelivery(channelId) {
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Patron') return;
   if (window.pendingDeliveryOrders && window.pendingDeliveryOrders.length > 0) {
     showNextPendingDeliveryOrder();
     return;
@@ -1834,6 +1853,7 @@ function stopActiveMarchNotes() {
 }
 
 function startOrderSoundLoop() {
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Patron') return;
   window.isOrderSoundActive = true;
   playTurkishMarch();
 }
@@ -1844,10 +1864,12 @@ function stopOrderSoundLoop() {
 }
 
 function playOrderBeep() {
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Patron') return;
   playTurkishMarch();
 }
 
 function playTurkishMarch() {
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Patron') return;
   let ctx = window.appAudioCtx;
   if (!ctx) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
