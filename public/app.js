@@ -156,6 +156,10 @@ async function fetchAppState() {
 }
 
 async function saveActiveOrderToServer(tableId) {
+  if (window.checkingOutTables && window.checkingOutTables.has(tableId)) {
+    console.log(`Save skipped for table ${tableId} because checkout is in progress`);
+    return;
+  }
   const order = AppState.activeOrders[tableId];
   try {
     if (!order || !order.items || order.items.length === 0) {
@@ -634,7 +638,7 @@ function renderCart() {
     listEl.appendChild(itemDiv);
   });
   
-  recalculateTotals();
+  recalculateTotals(false);
   lucide.createIcons();
 }
 
@@ -793,7 +797,7 @@ document.getElementById('cart-waiter-select').addEventListener('change', async (
 });
 
 // --- HESAPLAMA SİSTEMİ ---
-async function recalculateTotals() {
+async function recalculateTotals(shouldSave = true) {
   const tableId = AppState.selectedTable ? AppState.selectedTable.id : 'quick';
   const order = AppState.activeOrders[tableId];
   
@@ -814,7 +818,9 @@ async function recalculateTotals() {
   document.getElementById('summary-tax').textContent = `${tax.toFixed(2)} ₺`;
   document.getElementById('summary-total').textContent = `${total.toFixed(2)} ₺`;
   
-  await saveActiveOrderToServer(tableId);
+  if (shouldSave) {
+    await saveActiveOrderToServer(tableId);
+  }
 }
 
 function calculateOrderTotal(order) {
@@ -1131,6 +1137,9 @@ async function processPaymentAndPrint() {
   const order = AppState.activeOrders[tableId];
   if (!order) return;
 
+  window.checkingOutTables = window.checkingOutTables || new Set();
+  window.checkingOutTables.add(tableId);
+
   const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const discountAmount = subtotal * ((order.discount || 0) / 100);
   const subtotalWithDiscount = subtotal - discountAmount;
@@ -1173,6 +1182,8 @@ async function processPaymentAndPrint() {
   } catch (err) {
     console.error('Error during checkout payment:', err);
     showToast('Ödeme kaydedilemedi!', 'error');
+  } finally {
+    window.checkingOutTables.delete(tableId);
   }
 }
 
@@ -1450,6 +1461,9 @@ async function processSplitPayment() {
   const order = AppState.activeOrders[tableId];
   if (!order) return;
 
+  window.checkingOutTables = window.checkingOutTables || new Set();
+  window.checkingOutTables.add(tableId);
+
   // Seçilen kalemleri sepetten çıkart
   AppState.selectedSplitItems.forEach(splitItem => {
     const itemIdx = order.items.findIndex(i => i.id === splitItem.itemId && i.quantity > 0);
@@ -1497,6 +1511,7 @@ async function processSplitPayment() {
     
     if (!payRes.ok) throw new Error('Ödeme kaydedilemedi.');
 
+    window.checkingOutTables.delete(tableId);
     await saveActiveOrderToServer(tableId);
 
     closeModal('modal-split-bill');
@@ -1507,6 +1522,8 @@ async function processSplitPayment() {
   } catch (err) {
     console.error(err);
     showToast('Parçalı ödeme sırasında bir hata oluştu!', 'error');
+  } finally {
+    window.checkingOutTables.delete(tableId);
   }
 }
 
