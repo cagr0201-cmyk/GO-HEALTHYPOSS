@@ -291,6 +291,15 @@ function updateSidebarForRole(role) {
     if (AppState.activeView !== 'dashboard') {
       switchScreen('dashboard');
     }
+  } else if (role === 'Garson') {
+    if (navTables) navTables.style.display = 'flex';
+    if (navPos) navPos.style.display = 'flex';
+    if (navKitchen) navKitchen.style.display = 'flex';
+    if (navSettings) navSettings.style.display = 'none';
+    if (navDashboard) navDashboard.style.display = 'none';
+    if (AppState.activeView === 'dashboard' || AppState.activeView === 'settings') {
+      switchScreen('tables');
+    }
   } else {
     if (navTables) navTables.style.display = 'flex';
     if (navPos) navPos.style.display = 'flex';
@@ -343,6 +352,11 @@ async function fetchSalesHistoryFromServer() {
 async function switchScreen(viewName) {
   // Patron rolü Analiz (dashboard) dışındaki ekranlara geçemez
   if (AppState.activeStaff && AppState.activeStaff.role === 'Patron' && viewName !== 'dashboard') {
+    return;
+  }
+
+  // Garson rolü Analiz (dashboard) ve Ayarlar (settings) ekranlarına geçemez
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Garson' && (viewName === 'dashboard' || viewName === 'settings')) {
     return;
   }
 

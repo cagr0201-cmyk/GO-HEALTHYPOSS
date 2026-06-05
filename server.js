@@ -386,6 +386,13 @@ app.get('/api/expenses', async (req, res) => {
 app.post('/api/expenses', async (req, res) => {
   const { description, amount, category, staffId, timestamp } = req.body;
   try {
+    if (staffId) {
+      const staff = await db.get(`SELECT * FROM staff WHERE id = ?`, [staffId]);
+      if (staff && staff.role === 'Garson') {
+        return res.status(403).json({ error: 'Garson yetkisi ile gider kaydı yapılamaz!' });
+      }
+    }
+
     const id = 'EXP-' + Math.random().toString(36).substr(2, 9).toUpperCase();
     const ts = timestamp || new Date().toISOString();
     await db.run(
