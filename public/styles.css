@@ -1,37 +1,38 @@
-/* Google Fonts - Quicksand & Outfit */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Quicksand:wght@300;400;500;600;700&display=swap');
+/* Google Fonts - Quicksand & Outfit & Cinzel */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=Quicksand:wght@300;400;500;600;700&display=swap');
 
 /* --- CSS DEĞİŞKENLERİ --- */
 :root {
   --font-main: 'Quicksand', 'Outfit', sans-serif;
+  --font-brand: 'Cinzel', serif;
 
-  /* Premium Renk Paleti */
-  --bg-base: #090d16;
-  --bg-surface: rgba(17, 24, 39, 0.7);
-  --bg-surface-solid: #111827;
-  --bg-card: rgba(30, 41, 59, 0.45);
+  /* Premium Renk Paleti - Go Healthy Deep Green & Gold */
+  --bg-base: #072215;                        /* Deep forest green background */
+  --bg-surface: rgba(13, 54, 34, 0.75);      /* Lighter forest green with glass transparency */
+  --bg-surface-solid: #0d3622;               /* Solid lighter forest green */
+  --bg-card: rgba(18, 77, 48, 0.45);          /* Card background with transparency */
   
-  --border-light: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(76, 149, 108, 0.4);
+  --border-light: rgba(222, 193, 138, 0.15); /* Light gold border */
+  --border-focus: rgba(222, 193, 138, 0.5);  /* Gold border on focus */
 
-  --accent-purple: #4c956c;
-  --accent-purple-glow: rgba(76, 149, 108, 0.35);
-  --accent-pink: #dda15e;
-  --accent-pink-glow: rgba(221, 161, 94, 0.3);
-  --accent-cyan: #2a9d8f;
+  --accent-purple: #dec18a;                  /* Brand Gold */
+  --accent-purple-glow: rgba(222, 193, 138, 0.35);
+  --accent-pink: #ebd9b4;                    /* Lighter Gold/Cream */
+  --accent-pink-glow: rgba(235, 217, 180, 0.3);
+  --accent-cyan: #4c956c;                    /* Accent Green */
   --accent-orange: #f4a261;
   
   /* Durum Renkleri */
-  --status-free: #10B981;
-  --status-free-glow: rgba(16, 185, 129, 0.25);
+  --status-free: #2a9d8f;
+  --status-free-glow: rgba(42, 157, 143, 0.25);
   --status-busy: #e76f51;
   --status-busy-glow: rgba(231, 111, 81, 0.25);
-  --status-bill: #dda15e;
-  --status-bill-glow: rgba(221, 161, 94, 0.25);
+  --status-bill: #dec18a;                    /* Gold for bill state */
+  --status-bill-glow: rgba(222, 193, 138, 0.25);
   
   /* Metin Renkleri */
   --text-primary: #F3F4F6;
-  --text-secondary: #9CA3AF;
+  --text-secondary: #ebd9b4;                 /* Light gold/cream for secondary text */
   --text-muted: #6B7280;
   
   /* Shadow & Blur */
@@ -58,8 +59,8 @@ body {
   height: 100vh;
   overflow: hidden;
   background-image: 
-    radial-gradient(at 10% 10%, rgba(76, 149, 108, 0.15) 0px, transparent 50%),
-    radial-gradient(at 90% 90%, rgba(42, 157, 143, 0.1) 0px, transparent 50%);
+    radial-gradient(at 10% 10%, rgba(13, 54, 34, 0.25) 0px, transparent 50%),
+    radial-gradient(at 90% 90%, rgba(222, 193, 138, 0.08) 0px, transparent 50%);
   background-attachment: fixed;
 }
 
@@ -108,8 +109,9 @@ button, input, select, textarea {
 }
 
 .brand {
-  font-size: 24px;
-  font-weight: 700;
+  font-family: var(--font-brand);
+  font-size: 26px;
+  font-weight: 500;
   background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -217,9 +219,11 @@ button, input, select, textarea {
 }
 
 .header-title h1 {
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.5px;
+  font-family: var(--font-brand);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--accent-purple);
 }
 
 .header-title p {
