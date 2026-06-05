@@ -99,6 +99,13 @@ socket.on('incoming_delivery_alert', (data) => {
   triggerIncomingDeliveryClient(data.channelId, data.order);
 });
 
+// Live remote print request listener
+socket.on('remote_print_request', (data) => {
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Kasiyer') {
+    printReceipt(data.tx, data.type);
+  }
+});
+
 // --- VERİ YÜKLEME VE YEREL DEPOLAMA (SUNUCU EŞLEŞTİRME) ---
 async function fetchAppState() {
   try {
@@ -890,6 +897,17 @@ async function sendActiveOrderToKitchen() {
     order.items.forEach(item => item.isSentToKitchen = true);
     await saveActiveOrderToServer(tableId);
 
+    // Kasıdaki yazıcıdan mutfak fişi yazdırmak üzere sunucuya gönder
+    try {
+      await fetch('/api/print', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tx: kitchenTicket, type: 'kitchen' })
+      });
+    } catch (printErr) {
+      console.error('Error sending remote print request:', printErr);
+    }
+
     showToast('Siparişler mutfak ekranına iletildi.', 'success');
     switchScreen('tables');
   } catch (err) {
@@ -1148,78 +1166,135 @@ async function processPaymentAndPrint() {
   }
 }
 
-function printReceipt(tx) {
+function isPrinterConnected() {
+  const isElectron = (typeof window !== 'undefined' && window.process && window.process.type) || (navigator.userAgent.includes('Electron'));
+  if (isElectron) return true;
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Kasiyer') return true;
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return true;
+  return false;
+}
+
+async function printReceipt(tx, type = 'receipt') {
+  // Eğer bu cihaz yazıcıya bağlı değilse, fişi ana kasaya (Kasiyer bilgisayarına) yönlendirir.
+  if (!isPrinterConnected()) {
+    try {
+      await fetch('/api/print', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tx, type })
+      });
+    } catch (e) {
+      console.error(e);
+      showToast('Yazdırma isteği kasaya iletilemedi!', 'error');
+    }
+    return;
+  }
+
   const printSection = document.getElementById('print-receipt-section');
   if (!printSection) return;
 
   const dateStr = new Date(tx.timestamp).toLocaleString('tr-TR');
-  let itemLines = '';
-  tx.items.forEach(item => {
-    const optText = item.option ? ` (${item.option})` : '';
-    itemLines += `
-      <div class="receipt-item-line" style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size:12px;">
-        <span>${item.quantity}x ${item.name}${optText}</span>
-        <span>${(item.price * item.quantity).toFixed(2)} ₺</span>
+  
+  if (type === 'kitchen') {
+    let itemLines = '';
+    tx.items.forEach(item => {
+      const optText = item.option ? ` (${item.option})` : '';
+      const noteText = item.note ? `<div style="font-size: 11px; font-weight: bold; margin-left: 10px;">>> Not: ${item.note}</div>` : '';
+      itemLines += `
+        <div style="font-size: 14px; font-weight: bold; margin-bottom: 6px; border-bottom: 1px dashed #eee; padding-bottom: 4px; color: #000;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>${item.quantity}x ${item.name}${optText}</span>
+          </div>
+          ${noteText}
+        </div>
+      `;
+    });
+
+    printSection.innerHTML = `
+      <div class="receipt-paper" style="width: 80mm; padding: 10px; background:#fff; color:#000; font-family:monospace; margin:0 auto; box-sizing:border-box;">
+        <div style="text-align: center; font-size: 16px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 10px; color:#000;">
+          MUTFAK SİPARİŞ FİŞİ
+        </div>
+        <div style="font-size: 12px; margin-bottom: 4px; color:#000;"><strong>Masa/Bölüm:</strong> ${tx.tableName}</div>
+        <div style="font-size: 12px; margin-bottom: 4px; color:#000;"><strong>Garson:</strong> ${tx.waiterId ? tx.waiterId.toUpperCase() : 'BİLİNMİYOR'}</div>
+        <div style="font-size: 10px; margin-bottom: 10px; color:#000;"><strong>Tarih:</strong> ${dateStr}</div>
+        <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 8px 0; margin-bottom: 10px;">
+          ${itemLines}
+        </div>
+        <div style="text-align: center; font-size: 9px; margin-top: 10px; border-top: 1px dashed #000; padding-top: 6px; color:#000;">
+          Go Healthy - Kitchen Ticket
+        </div>
       </div>
     `;
-  });
+  } else {
+    let itemLines = '';
+    tx.items.forEach(item => {
+      const optText = item.option ? ` (${item.option})` : '';
+      itemLines += `
+        <div class="receipt-item-line" style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size:12px; color:#000;">
+          <span>${item.quantity}x ${item.name}${optText}</span>
+          <span>${(item.price * item.quantity).toFixed(2)} ₺</span>
+        </div>
+      `;
+    });
 
-  const methodText = tx.paymentMethod === 'CASH' ? 'NAKİT' : 'KREDİ KARTI';
+    const methodText = tx.paymentMethod === 'CASH' ? 'NAKİT' : 'KREDİ KARTI';
 
-  printSection.innerHTML = `
-    <div class="receipt-paper" style="width: 80mm; padding: 10px; background:#fff; color:#000; font-family:monospace; margin:0 auto; box-sizing:border-box;">
-      <div class="receipt-header" style="text-align:center; margin-bottom: 8px;">
-        <div class="receipt-logo" style="font-size:18px; font-weight:bold;">Go Healthy</div>
-        <div style="font-size:11px; font-weight:bold;">THE KITCHEN ALANYA</div>
-        <div style="font-size:9px; color:#333;">Saray Mah. Macaroğlu Sok. 4B / ALANYA</div>
-        <div style="font-size:9px; color:#333;">Tel: +90 501 073 7303</div>
+    printSection.innerHTML = `
+      <div class="receipt-paper" style="width: 80mm; padding: 10px; background:#fff; color:#000; font-family:monospace; margin:0 auto; box-sizing:border-box;">
+        <div class="receipt-header" style="text-align:center; margin-bottom: 8px; color:#000;">
+          <div class="receipt-logo" style="font-size:18px; font-weight:bold;">Go Healthy</div>
+          <div style="font-size:11px; font-weight:bold;">THE KITCHEN ALANYA</div>
+          <div style="font-size:9px; color:#333;">Saray Mah. Macaroğlu Sok. 4B / ALANYA</div>
+          <div style="font-size:9px; color:#333;">Tel: +90 501 073 7303</div>
+        </div>
+        <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+        <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Tarih:</span>
+          <span>${dateStr}</span>
+        </div>
+        <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Fiş No:</span>
+          <span>${tx.id}</span>
+        </div>
+        <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Masa/Bölüm:</span>
+          <span>${tx.tableName}</span>
+        </div>
+        <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Personel:</span>
+          <span>${tx.waiterId ? tx.waiterId.toUpperCase() : ''}</span>
+        </div>
+        <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+        <div class="receipt-items">
+          ${itemLines}
+        </div>
+        <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+        <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:11px; margin-bottom: 2px; color:#000;">
+          <span>Ara Toplam:</span>
+          <span>${tx.subtotal.toFixed(2)} ₺</span>
+        </div>
+        ${tx.discount > 0 ? `
+        <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:11px; color: green; margin-bottom: 2px;">
+          <span>İndirim (%${tx.discount}):</span>
+          <span>-${(tx.subtotal * tx.discount / 100).toFixed(2)} ₺</span>
+        </div>
+        ` : ''}
+        <div class="receipt-info-row receipt-totals" style="display:flex; justify-content:space-between; font-size:14px; font-weight:bold; margin-top: 4px; color:#000;">
+          <span>TOPLAM:</span>
+          <span>${tx.total.toFixed(2)} ₺</span>
+        </div>
+        <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+        <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:11px; font-weight:bold; margin-bottom: 4px; color:#000;">
+          <span>Ödeme Tipi:</span>
+          <span>${methodText}</span>
+        </div>
+        <div class="receipt-footer" style="text-align:center; font-size:10px; margin-top: 12px; color:#000;">
+          <p style="margin:0 0 4px 0;">TEŞEKKÜR EDERİZ</p>
+        </div>
       </div>
-      <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
-      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px;">
-        <span>Tarih:</span>
-        <span>${dateStr}</span>
-      </div>
-      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px;">
-        <span>Fiş No:</span>
-        <span>${tx.id}</span>
-      </div>
-      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px;">
-        <span>Masa/Bölüm:</span>
-        <span>${tx.tableName}</span>
-      </div>
-      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px;">
-        <span>Personel:</span>
-        <span>${tx.waiterId.toUpperCase()}</span>
-      </div>
-      <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
-      <div class="receipt-items">
-        ${itemLines}
-      </div>
-      <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
-      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:11px; margin-bottom: 2px;">
-        <span>Ara Toplam:</span>
-        <span>${tx.subtotal.toFixed(2)} ₺</span>
-      </div>
-      ${tx.discount > 0 ? `
-      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:11px; color: green; margin-bottom: 2px;">
-        <span>İndirim (%${tx.discount}):</span>
-        <span>-${(tx.subtotal * tx.discount / 100).toFixed(2)} ₺</span>
-      </div>
-      ` : ''}
-      <div class="receipt-info-row receipt-totals" style="display:flex; justify-content:space-between; font-size:14px; font-weight:bold; margin-top: 4px;">
-        <span>TOPLAM:</span>
-        <span>${tx.total.toFixed(2)} ₺</span>
-      </div>
-      <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
-      <div class="receipt-info-row" style="display:flex; justify-content:space-between; font-size:11px; font-weight:bold; margin-bottom: 4px;">
-        <span>Ödeme Tipi:</span>
-        <span>${methodText}</span>
-      </div>
-      <div class="receipt-footer" style="text-align:center; font-size:10px; margin-top: 12px;">
-        <p style="margin:0 0 4px 0;">TEŞEKKÜR EDERİZ</p>
-      </div>
-    </div>
-  `;
+    `;
+  }
 
   document.body.classList.add('printing-receipt');
   window.print();

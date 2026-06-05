@@ -380,6 +380,13 @@ app.post('/api/delivery/simulate', (req, res) => {
   res.json({ success: true });
 });
 
+// Remote print propagation endpoint
+app.post('/api/print', (req, res) => {
+  const { tx, type } = req.body;
+  io.emit('remote_print_request', { tx, type });
+  res.json({ success: true });
+});
+
 // --- SOCKET.IO EVENTS ---
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
