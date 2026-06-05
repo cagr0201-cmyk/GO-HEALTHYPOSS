@@ -363,6 +363,7 @@ app.post('/api/settings/reset', async (req, res) => {
     await db.run(`DROP TABLE IF EXISTS kitchen_orders`);
     await db.run(`DROP TABLE IF EXISTS sales_history`);
     await db.run(`DROP TABLE IF EXISTS staff`);
+    await db.run(`DROP TABLE IF EXISTS expenses`);
     await db.initDatabase();
 
     const state = await db.getAppState();

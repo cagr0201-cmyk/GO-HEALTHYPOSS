@@ -692,10 +692,11 @@ async function initDatabase() {
     await run(`INSERT INTO staff (id, name, role, code, status, shiftStart) VALUES (?, ?, ?, ?, ?, ?)`, [st.id, st.name, st.role, st.code, st.status, st.shiftStart]);
   }
 
-  const salesHistoryCount = await get(`SELECT COUNT(*) as count FROM sales_history`);
-  if (Number(salesHistoryCount.count) === 0) {
-    await seedHistoryInSQLite();
-  }
+  // Commented out mock history seeding to ensure a clean database for production
+  // const salesHistoryCount = await get(`SELECT COUNT(*) as count FROM sales_history`);
+  // if (Number(salesHistoryCount.count) === 0) {
+  //   await seedHistoryInSQLite();
+  // }
 }
 
 // 18 months sales history seeder for SQLite
