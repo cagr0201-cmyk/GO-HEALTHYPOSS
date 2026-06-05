@@ -580,6 +580,34 @@
             </div>
           </div>
 
+          <!-- YAZICI BAĞLANTI AYARLARI KARTI -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h2>Ağ Yazıcısı Ayarları (Wi-Fi / Ethernet)</h2>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 10px 0 16px;">
+              Mutfak ve kasa yazıcılarınızın IP adreslerini tanımlayarak siparişlerin doğru yazıcıdan sessizce çıkmasını sağlayın.
+            </p>
+            <form id="settings-printer-form" onsubmit="savePrinterSettings(event)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Kasa Yazıcısı IP Adresi</label>
+                <input type="text" id="p-kasa-ip" placeholder="Örn: 192.168.1.100" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; color: white;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">Mutfak Yazıcısı IP Adresi</label>
+                <input type="text" id="p-mutfak-ip" placeholder="Örn: 192.168.1.101" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; color: white;">
+              </div>
+              <div style="grid-column: span 2; display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                <input type="checkbox" id="p-printer-enabled" style="width: 18px; height: 18px; accent-color: var(--accent-gold);">
+                <label for="p-printer-enabled" style="font-size: 13px; color: var(--text-secondary); cursor: pointer;">Doğrudan IP Yazdırmayı Etkinleştir (Sessiz Yazdırma)</label>
+              </div>
+              <div style="grid-column: span 2; display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
+                <button type="button" class="modal-btn modal-btn-cancel" onclick="testPrinterConnection()" style="max-width: 150px; border-color: var(--border-light);">Bağlantıyı Test Et</button>
+                <button type="submit" class="modal-btn modal-btn-confirm" style="max-width: 150px;">Ayarları Kaydet</button>
+              </div>
+            </form>
+          </div>
+
           <div class="chart-card">
             <div class="chart-header">
               <h2>Veri Sıfırlama</h2>

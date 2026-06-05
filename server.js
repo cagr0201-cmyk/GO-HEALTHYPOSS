@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const os = require('os');
+const net = require('net');
 const db = require('./database');
 
 const app = express();
@@ -13,6 +14,150 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// In-memory printer settings (persist across requests; reset on server restart)
+// For production use, these can be loaded from an env var or a JSON file
+let printerSettings = {
+  kasaIp: process.env.PRINTER_KASA_IP || '',
+  mutfakIp: process.env.PRINTER_MUTFAK_IP || '',
+  enabled: false
+};
+
+// Category IDs that belong to the kitchen (food items)
+// These are seeded from data.js. Extras (extra-XX) also go to kitchen.
+const KITCHEN_CATEGORY_IDS = new Set([
+  'G7Dybmqujf1ahEEDJask', // KAHVALTILAR
+  'IDG2uULBtLhcIicltKSI', // HEALTHY BRUSCHETTA
+  'HzfdmS0BdMoEGtRX6IDg', // SALATALAR
+  'L3SlF5TXqvlpC0tD2oVI', // MAKARNALAR
+  'J9V643KQdRIYsJiOHmLX', // KASELER
+  'kDkKyJRAjMcPSr69pEDk', // FAST&HEALTHY
+  'qKvNEcG5aQN2nx9ygarX', // APERATİFLER
+  'extras'                 // EKSTRALAR (extra charges go to kasa, not kitchen)
+]);
+
+// Category IDs that belong to the bar/kasa (drinks)
+// Everything not in KITCHEN_CATEGORY_IDS goes to kasa
+const DRINK_CATEGORY_IDS = new Set([
+  'yKsnp6EFSg45UWDaz9LK', // SOFT İÇECEKLER
+  'qrQmFX0ue7YpR9206WDV', // DETOKS&SHOTLAR
+  'tETcPjbPcvEkInJMU7yL', // TAZE SIKIM
+  'HKdwjIy3KG9sKvHfLmzL', // SICAK İÇECEKLER
+  'lKEsPjjMDIjucLMx3QQb', // SOĞUK KAHVELER
+]);
+
+// Helper: Send raw ESC/POS text to a TCP printer over IP:port
+function sendToPrinter(ip, port = 9100, data) {
+  return new Promise((resolve, reject) => {
+    const client = new net.Socket();
+    const timeout = 5000;
+    client.setTimeout(timeout);
+    client.connect(port, ip, () => {
+      client.write(data, 'binary');
+      client.end();
+    });
+    client.on('close', () => resolve(true));
+    client.on('timeout', () => { client.destroy(); reject(new Error('Printer timeout')); });
+    client.on('error', (err) => reject(err));
+  });
+}
+
+// ESC/POS: Build a simple kitchen ticket text
+function buildKitchenTicket(tx) {
+  const ESC = '\x1b';
+  const INIT = ESC + '@';
+  const BOLD_ON = ESC + 'E\x01';
+  const BOLD_OFF = ESC + 'E\x00';
+  const CENTER = ESC + 'a\x01';
+  const LEFT = ESC + 'a\x00';
+  const CUT = '\x1d' + 'V\x41\x00';
+  const LF = '\n';
+
+  const date = new Date(tx.timestamp).toLocaleString('tr-TR');
+  let text = INIT + CENTER + BOLD_ON + 'MUTFAK SİPARİŞ FİŞİ' + BOLD_OFF + LF;
+  text += '================================' + LF;
+  text += LEFT + 'Masa: ' + (tx.tableName || '') + LF;
+  text += 'Garson: ' + (tx.waiterId ? tx.waiterId.toUpperCase() : '') + LF;
+  text += 'Tarih: ' + date + LF;
+  text += '--------------------------------' + LF;
+  (tx.items || []).forEach(item => {
+    const opt = item.option ? ' (' + item.option + ')' : '';
+    const note = item.note ? '\n  >> Not: ' + item.note : '';
+    text += BOLD_ON + item.quantity + 'x ' + item.name + opt + BOLD_OFF + note + LF;
+  });
+  text += '================================' + LF + LF + LF;
+  text += CUT;
+  return text;
+}
+
+// ESC/POS: Build a receipt text for the kasa printer
+function buildKasaReceipt(tx) {
+  const ESC = '\x1b';
+  const INIT = ESC + '@';
+  const BOLD_ON = ESC + 'E\x01';
+  const BOLD_OFF = ESC + 'E\x00';
+  const CENTER = ESC + 'a\x01';
+  const LEFT = ESC + 'a\x00';
+  const CUT = '\x1d' + 'V\x41\x00';
+  const LF = '\n';
+
+  const date = new Date(tx.timestamp).toLocaleString('tr-TR');
+  const payMap = { CASH: 'NAKİT', CARD: 'KREDİ KARTI', MEALCARD: 'YEMEK KARTI', OTHER: 'DİĞER' };
+  const methodText = payMap[tx.paymentMethod] || 'NAKİT';
+
+  let text = INIT + CENTER + BOLD_ON + 'Go Healthy THE KITCHEN' + BOLD_OFF + LF;
+  text += 'Saray Mah. Macaroglu Sok. 4B / ALANYA' + LF;
+  text += 'Tel: +90 501 073 7303' + LF;
+  text += '================================' + LF;
+  text += LEFT + 'Masa: ' + (tx.tableName || '') + LF;
+  text += 'Fiş No: ' + (tx.id || '') + LF;
+  text += 'Tarih: ' + date + LF;
+  text += '--------------------------------' + LF;
+  (tx.items || []).forEach(item => {
+    const opt = item.option ? ' (' + item.option + ')' : '';
+    const total = ((item.price || 0) * (item.quantity || 1)).toFixed(2);
+    text += item.quantity + 'x ' + item.name + opt + '  ' + total + ' TL' + LF;
+  });
+  text += '================================' + LF;
+  text += 'Ara Toplam: ' + (tx.subtotal || 0).toFixed(2) + ' TL' + LF;
+  if (tx.discount > 0) {
+    text += 'Indirim (%' + tx.discount + '): -' + (tx.subtotal * tx.discount / 100).toFixed(2) + ' TL' + LF;
+  }
+  text += BOLD_ON + 'TOPLAM: ' + (tx.total || 0).toFixed(2) + ' TL' + BOLD_OFF + LF;
+  text += 'Odeme: ' + methodText + LF;
+  text += '================================' + LF;
+  text += CENTER + 'TESEKKUR EDERIZ!' + LF + LF + LF;
+  text += CUT;
+  return text;
+}
+
+// ESC/POS: Build a drink/bar ticket
+function buildDrinkTicket(tx, drinkItems) {
+  const ESC = '\x1b';
+  const INIT = ESC + '@';
+  const BOLD_ON = ESC + 'E\x01';
+  const BOLD_OFF = ESC + 'E\x00';
+  const CENTER = ESC + 'a\x01';
+  const LEFT = ESC + 'a\x00';
+  const CUT = '\x1d' + 'V\x41\x00';
+  const LF = '\n';
+
+  const date = new Date(tx.timestamp).toLocaleString('tr-TR');
+  let text = INIT + CENTER + BOLD_ON + 'BAR/İÇECEK SİPARİŞİ' + BOLD_OFF + LF;
+  text += '================================' + LF;
+  text += LEFT + 'Masa: ' + (tx.tableName || '') + LF;
+  text += 'Garson: ' + (tx.waiterId ? tx.waiterId.toUpperCase() : '') + LF;
+  text += 'Tarih: ' + date + LF;
+  text += '--------------------------------' + LF;
+  drinkItems.forEach(item => {
+    const opt = item.option ? ' (' + item.option + ')' : '';
+    text += BOLD_ON + item.quantity + 'x ' + item.name + opt + BOLD_OFF + LF;
+  });
+  text += '================================' + LF + LF + LF;
+  text += CUT;
+  return text;
+}
+
 
 app.get('/menu', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'menu.html'));
@@ -421,11 +566,93 @@ app.post('/api/delivery/simulate', (req, res) => {
   res.json({ success: true });
 });
 
-// Remote print propagation endpoint
-app.post('/api/print', (req, res) => {
+// Smart print endpoint — routes to correct IP printer or falls back to socket broadcast
+app.post('/api/print', async (req, res) => {
   const { tx, type } = req.body;
+
+  if (printerSettings.enabled && (printerSettings.kasaIp || printerSettings.mutfakIp)) {
+    try {
+      if (type === 'kitchen') {
+        // Split items: food → mutfak, drinks → kasa
+        const allItems = tx.items || [];
+        const menuItems = await db.all('SELECT id, categoryId FROM menu_items');
+        const itemCatMap = {};
+        menuItems.forEach(m => { itemCatMap[m.id] = m.categoryId; });
+
+        const foodItems = allItems.filter(item => {
+          const catId = itemCatMap[item.id] || '';
+          return !DRINK_CATEGORY_IDS.has(catId);
+        });
+        const drinkItems = allItems.filter(item => {
+          const catId = itemCatMap[item.id] || '';
+          return DRINK_CATEGORY_IDS.has(catId);
+        });
+
+        const printPromises = [];
+        if (foodItems.length > 0 && printerSettings.mutfakIp) {
+          const ticket = buildKitchenTicket({ ...tx, items: foodItems });
+          printPromises.push(sendToPrinter(printerSettings.mutfakIp, 9100, ticket));
+        }
+        if (drinkItems.length > 0 && printerSettings.kasaIp) {
+          const ticket = buildDrinkTicket({ ...tx, items: drinkItems }, drinkItems);
+          printPromises.push(sendToPrinter(printerSettings.kasaIp, 9100, ticket));
+        }
+
+        await Promise.all(printPromises);
+        return res.json({ success: true, printedDirectly: true });
+
+      } else if (type === 'receipt' && printerSettings.kasaIp) {
+        // Receipt always goes to kasa printer
+        const receipt = buildKasaReceipt(tx);
+        await sendToPrinter(printerSettings.kasaIp, 9100, receipt);
+        return res.json({ success: true, printedDirectly: true });
+      }
+    } catch (err) {
+      console.error('Direct IP print failed, falling back to socket broadcast:', err.message);
+      // Fall through to socket broadcast below
+    }
+  }
+
+  // Fallback: broadcast to all connected browser clients via Socket.IO
   io.emit('remote_print_request', { tx, type });
+  res.json({ success: true, printedDirectly: false });
+});
+
+// Printer settings GET
+app.get('/api/settings/printers', (req, res) => {
+  res.json(printerSettings);
+});
+
+// Printer settings SAVE
+app.post('/api/settings/printers', (req, res) => {
+  const { kasaIp, mutfakIp, enabled } = req.body;
+  printerSettings.kasaIp = (kasaIp || '').trim();
+  printerSettings.mutfakIp = (mutfakIp || '').trim();
+  printerSettings.enabled = !!enabled;
+  console.log('Printer settings updated:', printerSettings);
   res.json({ success: true });
+});
+
+// Printer connection test
+app.post('/api/settings/printers/test', async (req, res) => {
+  const { kasaIp, mutfakIp } = req.body;
+  const results = [];
+
+  async function testOne(label, ip) {
+    if (!ip) return;
+    try {
+      await sendToPrinter(ip, 9100, '\x1b@Test: ' + label + ' baglantisi basarili!\n\n\n\x1dV\x41\x00');
+      results.push({ label, ip, ok: true });
+    } catch (err) {
+      results.push({ label, ip, ok: false, error: err.message });
+    }
+  }
+
+  await Promise.all([testOne('Kasa Yazıcısı', kasaIp), testOne('Mutfak Yazıcısı', mutfakIp)]);
+
+  const allOk = results.every(r => r.ok);
+  const message = results.map(r => `${r.label} (${r.ip}): ${r.ok ? '✅ BAĞLANDI' : '❌ BAĞLANAMADI - ' + r.error}`).join(' | ');
+  res.json({ success: allOk, message });
 });
 
 // --- SOCKET.IO EVENTS ---

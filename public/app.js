@@ -429,6 +429,7 @@ async function switchScreen(viewName) {
     mainTitle.textContent = 'Sistem Yönetim & Reçete Ayarları';
     subTitle.textContent = 'Hammadde stok ve menü reçete yönetim paneli';
     renderStockManagementTable();
+    loadPrinterSettings();
   }
 
   lucide.createIcons();
@@ -1274,18 +1275,27 @@ function isPrinterConnected() {
 }
 
 async function printReceipt(tx, type = 'receipt') {
-  // Eğer bu cihaz yazıcıya bağlı değilse, fişi ana kasaya (Kasiyer bilgisayarına) yönlendirir.
-  if (!isPrinterConnected()) {
-    try {
-      await fetch('/api/print', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tx, type })
-      });
-    } catch (e) {
-      console.error(e);
-      showToast('Yazdırma isteği kasaya iletilemedi!', 'error');
+  let printedDirectly = false;
+  try {
+    const response = await fetch('/api/print', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tx, type })
+    });
+    if (response.ok) {
+      const resData = await response.json();
+      if (resData.printedDirectly) {
+        printedDirectly = true;
+        showToast('Sipariş ağ yazıcısına sessizce gönderildi.', 'success');
+        return;
+      }
     }
+  } catch (e) {
+    console.error('Direct IP print error:', e);
+  }
+
+  if (!isPrinterConnected()) {
+    showToast('Bu cihaz yazıcıya bağlı değil ve ağ yazıcıları aktif değil!', 'warning');
     return;
   }
 
@@ -3349,5 +3359,72 @@ async function deleteExpense(id) {
   } catch (err) {
     console.error('Error deleting expense:', err);
     showToast('Gider silinemedi!', 'error');
+  }
+}
+
+// --- YAZICI YÖNETİM AYARLARI ---
+async function loadPrinterSettings() {
+  try {
+    const res = await fetch('/api/settings/printers');
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById('p-kasa-ip').value = data.kasaIp || '';
+      document.getElementById('p-mutfak-ip').value = data.mutfakIp || '';
+      document.getElementById('p-printer-enabled').checked = !!data.enabled;
+    }
+  } catch (err) {
+    console.error('Error loading printer settings:', err);
+  }
+}
+
+async function savePrinterSettings(e) {
+  if (e) e.preventDefault();
+  const kasaIp = document.getElementById('p-kasa-ip').value.trim();
+  const mutfakIp = document.getElementById('p-mutfak-ip').value.trim();
+  const enabled = document.getElementById('p-printer-enabled').checked;
+
+  try {
+    const res = await fetch('/api/settings/printers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kasaIp, mutfakIp, enabled })
+    });
+    if (res.ok) {
+      showToast('Yazıcı ayarları başarıyla kaydedildi.', 'success');
+    } else {
+      throw new Error('Kaydetme hatası');
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('Yazıcı ayarları kaydedilemedi!', 'error');
+  }
+}
+
+async function testPrinterConnection() {
+  const kasaIp = document.getElementById('p-kasa-ip').value.trim();
+  const mutfakIp = document.getElementById('p-mutfak-ip').value.trim();
+  
+  if (!kasaIp && !mutfakIp) {
+    showToast('Lütfen test etmek için en az bir IP adresi girin.', 'warning');
+    return;
+  }
+
+  showToast('Bağlantı test ediliyor...', 'info');
+
+  try {
+    const res = await fetch('/api/settings/printers/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kasaIp, mutfakIp })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast(result.message, 'success');
+    } else {
+      showToast(result.message || 'Bağlantı başarısız!', 'error');
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('Yazıcı bağlantı testi başarısız oldu!', 'error');
   }
 }
