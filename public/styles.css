@@ -762,6 +762,7 @@ button, input, select, textarea {
 .cart-items-list {
   flex: 1;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -776,7 +777,6 @@ button, input, select, textarea {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  animation: slideInLeft 0.2s ease-out;
 }
 
 .cart-item-row {
