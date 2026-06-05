@@ -264,6 +264,11 @@ button, input, select, textarea {
   display: block;
 }
 
+#screen-pos,
+#screen-kitchen {
+  overflow: hidden;
+}
+
 /* --- 1. MASA HARİTASI EKRANI --- */
 .floor-selector {
   display: flex;
@@ -761,8 +766,7 @@ button, input, select, textarea {
 /* Sepet İçi Elemanlar Listesi */
 .cart-items-list {
   flex: 1;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
+  overflow-y: scroll;
   padding: 12px;
   display: flex;
   flex-direction: column;
