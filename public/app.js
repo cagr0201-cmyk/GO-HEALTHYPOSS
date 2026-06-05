@@ -281,6 +281,11 @@ function updateSidebarForRole(role) {
   const navKitchen = document.getElementById('nav-kitchen');
   const navDashboard = document.getElementById('nav-dashboard');
   const navSettings = document.getElementById('nav-settings');
+
+  // Dashboard elements to hide/show for Garson
+  const metricsGrid = document.querySelector('.metrics-grid');
+  const dbTabs = document.querySelector('.dashboard-tabs');
+  const dbFilterBar = document.querySelector('.dashboard-filter-bar');
   
   if (role === 'Patron') {
     if (navTables) navTables.style.display = 'none';
@@ -288,6 +293,11 @@ function updateSidebarForRole(role) {
     if (navKitchen) navKitchen.style.display = 'none';
     if (navSettings) navSettings.style.display = 'none';
     if (navDashboard) navDashboard.style.display = 'flex';
+
+    if (metricsGrid) metricsGrid.style.display = 'grid';
+    if (dbTabs) dbTabs.style.display = 'flex';
+    if (dbFilterBar) dbFilterBar.style.display = 'flex';
+
     if (AppState.activeView !== 'dashboard') {
       switchScreen('dashboard');
     }
@@ -296,8 +306,15 @@ function updateSidebarForRole(role) {
     if (navPos) navPos.style.display = 'flex';
     if (navKitchen) navKitchen.style.display = 'flex';
     if (navSettings) navSettings.style.display = 'none';
-    if (navDashboard) navDashboard.style.display = 'none';
-    if (AppState.activeView === 'dashboard' || AppState.activeView === 'settings') {
+    if (navDashboard) navDashboard.style.display = 'flex';
+
+    if (metricsGrid) metricsGrid.style.display = 'none';
+    if (dbTabs) dbTabs.style.display = 'none';
+    if (dbFilterBar) dbFilterBar.style.display = 'none';
+
+    switchDashboardTab('expenses');
+
+    if (AppState.activeView === 'settings') {
       switchScreen('tables');
     }
   } else {
@@ -306,6 +323,10 @@ function updateSidebarForRole(role) {
     if (navKitchen) navKitchen.style.display = 'flex';
     if (navDashboard) navDashboard.style.display = 'flex';
     if (navSettings) navSettings.style.display = 'flex';
+
+    if (metricsGrid) metricsGrid.style.display = 'grid';
+    if (dbTabs) dbTabs.style.display = 'flex';
+    if (dbFilterBar) dbFilterBar.style.display = 'flex';
   }
 }
 
@@ -355,8 +376,8 @@ async function switchScreen(viewName) {
     return;
   }
 
-  // Garson rolü Analiz (dashboard) ve Ayarlar (settings) ekranlarına geçemez
-  if (AppState.activeStaff && AppState.activeStaff.role === 'Garson' && (viewName === 'dashboard' || viewName === 'settings')) {
+  // Garson rolü Ayarlar (settings) ekranına geçemez
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Garson' && viewName === 'settings') {
     return;
   }
 
@@ -2410,6 +2431,11 @@ function switchDashboardTab(tabName) {
 }
 
 function renderDashboard() {
+  if (AppState.activeStaff && AppState.activeStaff.role === 'Garson') {
+    renderExpensesTable();
+    return;
+  }
+
   const filteredSales = filterHistoryByPeriod();
   const filteredExpenses = filterExpensesByPeriod();
   
