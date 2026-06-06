@@ -121,8 +121,13 @@ socket.on('incoming_delivery_alert', (data) => {
   triggerIncomingDeliveryClient(data.channelId, data.order);
 });
 
-// Live remote print request listener — calls localPrint to avoid API loop
+// Yazdırma işlemi başlatan cihazın kendi socket echo'sını yok sayması için bayrak
+let _printingLocally = false;
+
+// Live remote print request listener — sadece başka cihazlar için basar
 socket.on('remote_print_request', (data) => {
+  // Bu cihaz zaten localPrint ile bastıysa socket echo'sunu atla
+  if (_printingLocally) return;
   if (AppState.activeStaff && (AppState.activeStaff.role === 'Kasiyer' || AppState.activeStaff.role === 'Müdür' || AppState.activeStaff.role === 'Patron')) {
     if (isPrinterConnected()) {
       localPrint(data.tx, data.type);
@@ -955,6 +960,8 @@ async function sendActiveOrderToKitchen() {
     return;
   }
 
+  const groupedUnsentItems = groupOrderItems(unsentItems);
+
   const kitchenTicket = {
     id: 'K-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
     tableId: tableId,
@@ -962,7 +969,8 @@ async function sendActiveOrderToKitchen() {
     waiterId: order.waiterId,
     timestamp: new Date().toISOString(),
     status: 'cooking',
-    items: unsentItems.map(item => ({
+    items: groupedUnsentItems.map(item => ({
+      id: item.id,
       name: item.name,
       quantity: item.quantity,
       option: item.option,
@@ -1139,6 +1147,21 @@ async function completeKitchenOrder(ticketId) {
   }
 }
 
+// --- YARDIMCI: Aynı ürünleri birleştir (x1 + x1 → x2) ---
+function groupOrderItems(items) {
+  const map = new Map();
+  items.forEach(item => {
+    // Birleştirme anahtarı: ad + seçenek + not (bunlar aynıysa aynı ürün sayılır)
+    const key = `${item.id || item.name}|${item.option || ''}|${item.note || ''}`;
+    if (map.has(key)) {
+      map.get(key).quantity += (item.quantity || 1);
+    } else {
+      map.set(key, { ...item, quantity: item.quantity || 1 });
+    }
+  });
+  return Array.from(map.values());
+}
+
 // --- ADİSYON YAZDIR (masa kapatılmadan ön fiş) ---
 async function printPreBill() {
   const tableId = AppState.selectedTable ? AppState.selectedTable.id : 'quick';
@@ -1150,7 +1173,9 @@ async function printPreBill() {
   }
 
   const tableName = AppState.selectedTable ? AppState.selectedTable.name : 'Hızlı Satış';
-  const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  // Aynı ürünleri birleştir
+  const groupedItems = groupOrderItems(order.items);
+  const subtotal = groupedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const discountAmount = subtotal * ((order.discount || 0) / 100);
   const total = subtotal - discountAmount;
   const now = new Date().toISOString();
@@ -1160,7 +1185,7 @@ async function printPreBill() {
     id: 'ADİSYON',
     tableId,
     tableName,
-    items: [...order.items],
+    items: groupedItems,
     subtotal,
     tax: 0,
     discount: order.discount || 0,
@@ -1353,9 +1378,16 @@ async function printReceipt(tx, type = 'receipt') {
     console.error('Print API error:', e);
   }
 
-  // IP yazıcı yoksa veya başarısız olduysa bu cihazdan tarayıcı ile bas
+  // IP yazıcı yoksa: bu cihazdan tek seferlik yazdır,
+  // bayrak ile aynı anda gelecek socket echo'sunu engelle
   if (isPrinterConnected()) {
-    localPrint(tx, type);
+    _printingLocally = true;
+    try {
+      localPrint(tx, type);
+    } finally {
+      // Socket event'i genellikle çok hızlı gelir; 500ms sonra bayrağı kaldır
+      setTimeout(() => { _printingLocally = false; }, 500);
+    }
   }
 }
 
