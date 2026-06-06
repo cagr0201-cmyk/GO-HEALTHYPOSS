@@ -665,6 +665,8 @@ function renderCart() {
     document.getElementById('summary-subtotal').textContent = '0.00 ₺';
     document.getElementById('summary-tax').textContent = '0.00 ₺';
     document.getElementById('summary-total').textContent = '0.00 ₺';
+    const discTypeSel = document.getElementById('discount-type-select');
+    if (discTypeSel) discTypeSel.value = 'percent';
     document.getElementById('summary-discount-input').value = 0;
     
     sendKitchenBtn.disabled = true;
@@ -687,6 +689,21 @@ function renderCart() {
     if (btn.id === `btn-${activeOrder.orderType}`) btn.classList.add('active');
     else btn.classList.remove('active');
   });
+
+  const discountTypeSelect = document.getElementById('discount-type-select');
+  if (discountTypeSelect) {
+    discountTypeSelect.value = activeOrder.discountType || 'percent';
+  }
+  
+  const discountInput = document.getElementById('summary-discount-input');
+  if (discountInput) {
+    if ((activeOrder.discountType || 'percent') === 'amount') {
+      const subtotal = activeOrder.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      discountInput.value = (subtotal * (activeOrder.discount || 0) / 100).toFixed(2);
+    } else {
+      discountInput.value = activeOrder.discount || 0;
+    }
+  }
 
   activeOrder.items.forEach((item, index) => {
     const itemDiv = document.createElement('div');
@@ -885,12 +902,29 @@ async function recalculateTotals(shouldSave = true) {
   if (!order) return;
 
   const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  
   const discountInput = document.getElementById('summary-discount-input');
-  const discountPercent = parseFloat(discountInput.value) || 0;
+  const discountTypeSelect = document.getElementById('discount-type-select');
+  
+  const discountType = discountTypeSelect ? discountTypeSelect.value : 'percent';
+  const discountInputValue = parseFloat(discountInput.value) || 0;
+  
+  let discountPercent = 0;
+  let discountAmount = 0;
+  
+  if (discountType === 'percent') {
+    discountPercent = Math.min(100, Math.max(0, discountInputValue));
+    discountAmount = subtotal * (discountPercent / 100);
+    discountInput.value = discountPercent;
+  } else {
+    discountAmount = Math.min(subtotal, Math.max(0, discountInputValue));
+    discountPercent = subtotal > 0 ? (discountAmount / subtotal) * 100 : 0;
+    discountInput.value = discountAmount;
+  }
   
   order.discount = discountPercent;
+  order.discountType = discountType;
   
-  const discountAmount = subtotal * (discountPercent / 100);
   const subtotalWithDiscount = subtotal - discountAmount;
   const tax = 0;
   const total = subtotalWithDiscount;
@@ -1025,6 +1059,51 @@ async function confirmOrderAndReturn() {
 
   // Eğer yeni mutfak siparişi yoksa doğrudan masa haritasına geri dön
   switchScreen('tables');
+}
+
+async function cancelActiveOrder() {
+  const tableId = AppState.selectedTable ? AppState.selectedTable.id : 'quick';
+  
+  if (tableId === 'quick') {
+    const order = AppState.activeOrders[tableId];
+    if (!order || order.items.length === 0) {
+      showToast('Adisyon zaten boş!', 'info');
+      return;
+    }
+    if (confirm('Hızlı Satış adisyonunu iptal etmek istediğinizden emin misiniz?')) {
+      delete AppState.activeOrders[tableId];
+      renderCart();
+      showToast('Adisyon iptal edildi.', 'success');
+    }
+    return;
+  }
+  
+  const order = AppState.activeOrders[tableId];
+  if (!order || order.items.length === 0) {
+    showToast('Adisyon zaten boş!', 'info');
+    return;
+  }
+  
+  if (confirm('Bu masadaki adisyonu tamamen iptal edip masayı boşaltmak istediğinizden emin misiniz?')) {
+    try {
+      const response = await fetch(`/api/orders/${tableId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) {
+        throw new Error('İptal işlemi sunucuda başarısız oldu.');
+      }
+      
+      delete AppState.activeOrders[tableId];
+      const table = AppState.tables.find(t => t.id === tableId);
+      if (table) table.status = 'free';
+      
+      showToast('Masa adisyonu iptal edildi ve masa boşaltıldı.', 'success');
+      switchScreen('tables');
+    } catch (err) {
+      console.error('Error cancelling order:', err);
+      showToast('Adisyon iptal edilemedi!', 'error');
+    }
+  }
 }
 
 function renderKitchenMonitor() {

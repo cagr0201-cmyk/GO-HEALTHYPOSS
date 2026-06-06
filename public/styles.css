@@ -975,7 +975,7 @@ button, input, select, textarea {
 
 .cart-actions-bottom-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
   padding: 0 16px 16px 16px;
   background: rgba(255, 255, 255, 0.02);
@@ -1050,6 +1050,35 @@ button, input, select, textarea {
 
 .cart-btn-merge:hover {
   background: rgba(255, 255, 255, 0.15);
+}
+
+.cart-btn-cancel-order {
+  background: rgba(231, 111, 81, 0.12) !important;
+  border: 1px solid var(--status-busy) !important;
+  color: var(--status-busy) !important;
+}
+
+.cart-btn-cancel-order:hover {
+  background: var(--status-busy) !important;
+  color: white !important;
+  box-shadow: 0 0 15px var(--status-busy-glow);
+  transform: translateY(-1px);
+}
+
+#discount-type-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  padding: 2px;
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+  font-size: 12px;
+}
+
+#discount-type-select option {
+  background-color: var(--bg-surface-solid);
+  color: var(--text-primary);
 }
 
 .cart-btn-confirm-return {
