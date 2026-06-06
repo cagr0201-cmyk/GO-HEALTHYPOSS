@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Go Healthy POS</title>
   <!-- CSS Dosyası -->
-  <link rel="stylesheet" href="styles.css?v=8ce2ea1b">
+  <link rel="stylesheet" href="styles.css?v=d0718e1b">
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Chart.js CDN -->
@@ -802,9 +802,29 @@
           <!-- Ürünlerin listesi check-box'lar ile -->
         </div>
 
-        <div class="amount-due-row" style="margin-bottom: 16px; padding: 10px 14px; background: rgba(6,182,212,0.05); border-color: rgba(6,182,212,0.2);">
+        <div class="amount-due-row" style="margin-bottom: 12px; padding: 10px 14px; background: rgba(6,182,212,0.05); border-color: rgba(6,182,212,0.2);">
           <span class="due-label" style="color: var(--accent-cyan);">Seçilenlerin Toplamı (Ödenecek):</span>
           <span class="due-value" id="split-selected-amount" style="font-size:18px; color: var(--accent-cyan);">0.00 ₺</span>
+        </div>
+
+        <div class="options-group-title" style="margin-bottom: 6px;">Ödeme Yöntemi</div>
+        <div class="payment-methods-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
+          <button class="pay-method-btn selected" id="split-method-cash" onclick="setSplitPaymentMethod('CASH')">
+            <i data-lucide="banknote" style="color: var(--status-free);"></i>
+            <span>Nakit</span>
+          </button>
+          <button class="pay-method-btn" id="split-method-card" onclick="setSplitPaymentMethod('CARD')">
+            <i data-lucide="credit-card" style="color: var(--accent-purple);"></i>
+            <span>Kredi Kartı</span>
+          </button>
+          <button class="pay-method-btn" id="split-method-mealcard" onclick="setSplitPaymentMethod('MEALCARD')">
+            <i data-lucide="nfc" style="color: var(--accent-cyan);"></i>
+            <span>Yemek Kartı</span>
+          </button>
+          <button class="pay-method-btn" id="split-method-other" onclick="setSplitPaymentMethod('OTHER')">
+            <i data-lucide="more-horizontal" style="color: var(--accent-gold);"></i>
+            <span>Diğer</span>
+          </button>
         </div>
 
         <div class="modal-actions">
@@ -916,8 +936,8 @@
   <div id="print-receipt-section" style="display: none;"></div>
 
   <!-- UYGULAMA JS DOSYALARI -->
-  <script src="data.js?v=8ce2ea1b"></script>
-  <script src="app.js?v=8ce2ea1b"></script>
+  <script src="data.js?v=d0718e1b"></script>
+  <script src="app.js?v=d0718e1b"></script>
 
 </body>
 </html>

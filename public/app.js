@@ -1688,6 +1688,9 @@ function openSplitBillModal() {
   
   AppState.selectedSplitItems = [];
   document.getElementById('split-selected-amount').textContent = '0.00 ₺';
+  
+  // Set default split payment method to CASH
+  setSplitPaymentMethod('CASH');
 
   // Adisyondaki tekil porsiyonları listele
   order.items.forEach((item, index) => {
@@ -1723,6 +1726,22 @@ function toggleSplitItem(itemId, price, isChecked) {
   const total = subtotal;
   
   document.getElementById('split-selected-amount').textContent = `${total.toFixed(2)} ₺`;
+}
+
+function setSplitPaymentMethod(method) {
+  AppState.activeSplitPaymentMethod = method;
+  
+  const methods = ['CASH', 'CARD', 'MEALCARD', 'OTHER'];
+  methods.forEach(m => {
+    const btn = document.getElementById(`split-method-${m.toLowerCase()}`);
+    if (btn) {
+      if (m === method) {
+        btn.classList.add('selected');
+      } else {
+        btn.classList.remove('selected');
+      }
+    }
+  });
 }
 
 async function processSplitPayment() {
@@ -1770,7 +1789,7 @@ async function processSplitPayment() {
     tax: tax,
     discount: 0,
     total: total,
-    paymentMethod: 'CARD',
+    paymentMethod: AppState.activeSplitPaymentMethod || 'CASH',
     orderType: order.orderType || 'dine-in',
     waiterId: order.waiterId,
     timestamp: new Date().toISOString()
