@@ -1718,9 +1718,9 @@ function toggleSplitItem(itemId, price, isChecked) {
     if (idx !== -1) AppState.selectedSplitItems.splice(idx, 1);
   }
   
-  // Seçilenlerin KDV dahil toplamını hesapla (%10 KDV)
+  // Seçilenlerin toplamını hesapla (KDV zaten fiyata dahil)
   const subtotal = AppState.selectedSplitItems.reduce((sum, item) => sum + item.price, 0);
-  const total = subtotal * 1.10;
+  const total = subtotal;
   
   document.getElementById('split-selected-amount').textContent = `${total.toFixed(2)} ₺`;
 }
