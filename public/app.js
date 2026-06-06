@@ -2819,6 +2819,7 @@ function renderDashboard() {
 
   renderCharts(filteredSales);
   renderTopItemsTable(filteredSales);
+  renderPaymentMethodsTable(filteredSales);
 
   if (AppState.dashboardSubTab === 'expenses') {
     renderExpensesTable();
@@ -3095,6 +3096,58 @@ function renderTopItemsTable(filteredSales) {
       </div>
       <div class="rank-bar-bg">
         <div class="rank-bar-fill" style="width: ${pct}%"></div>
+      </div>
+    `;
+    listEl.appendChild(row);
+  });
+}
+
+function renderPaymentMethodsTable(filteredSales) {
+  const methodAmounts = {
+    'CASH': { name: 'Nakit', amount: 0, count: 0, color: 'var(--status-free)' },
+    'CARD': { name: 'Kredi Kartı', amount: 0, count: 0, color: 'var(--accent-purple)' },
+    'MEALCARD': { name: 'Yemek Kartı', amount: 0, count: 0, color: 'var(--accent-cyan)' },
+    'OTHER': { name: 'Diğer', amount: 0, count: 0, color: 'var(--status-bill)' }
+  };
+
+  filteredSales.forEach(tx => {
+    const method = tx.paymentMethod || 'CASH';
+    if (methodAmounts[method]) {
+      methodAmounts[method].amount += tx.total;
+      methodAmounts[method].count += 1;
+    } else {
+      methodAmounts['OTHER'].amount += tx.total;
+      methodAmounts['OTHER'].count += 1;
+    }
+  });
+
+  const sortedMethods = Object.keys(methodAmounts).map(key => ({
+    key: key,
+    name: methodAmounts[key].name,
+    amount: methodAmounts[key].amount,
+    count: methodAmounts[key].count,
+    color: methodAmounts[key].color
+  })).sort((a, b) => b.amount - a.amount);
+
+  const listEl = document.getElementById('dashboard-payment-list');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  const totalRevenue = filteredSales.reduce((sum, tx) => sum + tx.total, 0);
+  const maxAmount = sortedMethods.length > 0 ? sortedMethods[0].amount : 1;
+
+  sortedMethods.forEach(method => {
+    const pctShare = totalRevenue > 0 ? Math.round((method.amount / totalRevenue) * 100) : 0;
+    const pctBar = maxAmount > 0 ? Math.round((method.amount / maxAmount) * 100) : 0;
+    const row = document.createElement('div');
+    row.className = 'rank-item';
+    row.innerHTML = `
+      <div class="rank-item-info">
+        <span class="rank-item-name" style="color: ${method.color}; font-weight: 600;">${method.name}</span>
+        <span class="rank-item-count">${method.amount.toFixed(2)} ₺ (${pctShare}%) - ${method.count} Fiş</span>
+      </div>
+      <div class="rank-bar-bg">
+        <div class="rank-bar-fill" style="width: ${pctBar}%; background: ${method.color};"></div>
       </div>
     `;
     listEl.appendChild(row);
