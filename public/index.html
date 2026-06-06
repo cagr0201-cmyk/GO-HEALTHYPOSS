@@ -210,6 +210,9 @@
               <button class="cart-btn cart-btn-kitchen" id="btn-send-kitchen" onclick="sendActiveOrderToKitchen()">
                 <i data-lucide="chef-hat"></i> Mutfak
               </button>
+              <button class="cart-btn cart-btn-prebill" id="btn-print-prebill" onclick="printPreBill()" title="Adisyonu masaya yazdır">
+                <i data-lucide="printer"></i> Adisyon
+              </button>
               <button class="cart-btn cart-btn-pay" id="btn-checkout" onclick="openCheckoutModal()">
                 <i data-lucide="credit-card"></i> Ödeme Al
               </button>
@@ -695,9 +698,14 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>Hesap Ödeme Al</h3>
-        <span class="modal-close-btn" onclick="closeModal('modal-checkout')">
-          <i data-lucide="x"></i>
-        </span>
+        <div style="display:flex; align-items:center; gap: 10px;">
+          <button onclick="printPreBill()" style="background: rgba(222,193,138,0.15); border: 1px solid var(--accent-gold); color: var(--accent-gold); border-radius: 8px; padding: 6px 12px; cursor:pointer; font-size: 13px; display:flex; align-items:center; gap:6px;" title="Ödeme almadan önce adisyonu yazdır">
+            <i data-lucide="printer" style="width:14px; height:14px;"></i> Adisyon Yazdır
+          </button>
+          <span class="modal-close-btn" onclick="closeModal('modal-checkout')">
+            <i data-lucide="x"></i>
+          </span>
+        </div>
       </div>
       <div class="modal-body">
         <div class="checkout-payment-box">

@@ -158,6 +158,46 @@ function buildDrinkTicket(tx, drinkItems) {
   return text;
 }
 
+// ESC/POS: Build an adisyon (pre-bill) ticket for the kasa printer
+function buildPreBill(tx) {
+  const ESC = '\x1b';
+  const INIT = ESC + '@';
+  const BOLD_ON = ESC + 'E\x01';
+  const BOLD_OFF = ESC + 'E\x00';
+  const CENTER = ESC + 'a\x01';
+  const LEFT = ESC + 'a\x00';
+  const CUT = '\x1d' + 'V\x41\x00';
+  const LF = '\n';
+
+  const date = new Date(tx.timestamp).toLocaleString('tr-TR');
+
+  let text = INIT + CENTER + BOLD_ON + 'Go Healthy THE KITCHEN' + BOLD_OFF + LF;
+  text += 'Saray Mah. Macaroglu Sok. 4B / ALANYA' + LF;
+  text += 'Tel: +90 501 073 7303' + LF;
+  text += '================================' + LF;
+  text += CENTER + BOLD_ON + '*** ADİSYON ***' + BOLD_OFF + LF;
+  text += '================================' + LF;
+  text += LEFT + 'Masa: ' + (tx.tableName || '') + LF;
+  text += 'Personel: ' + (tx.waiterId ? tx.waiterId.toUpperCase() : '') + LF;
+  text += 'Tarih: ' + date + LF;
+  text += '--------------------------------' + LF;
+  (tx.items || []).forEach(item => {
+    const opt = item.option ? ' (' + item.option + ')' : '';
+    const total = ((item.price || 0) * (item.quantity || 1)).toFixed(2);
+    text += item.quantity + 'x ' + item.name + opt + '  ' + total + ' TL' + LF;
+  });
+  text += '================================' + LF;
+  text += 'Ara Toplam: ' + (tx.subtotal || 0).toFixed(2) + ' TL' + LF;
+  if (tx.discount > 0) {
+    text += 'Indirim (%' + tx.discount + '): -' + (tx.subtotal * tx.discount / 100).toFixed(2) + ' TL' + LF;
+  }
+  text += BOLD_ON + 'TOPLAM: ' + (tx.total || 0).toFixed(2) + ' TL' + BOLD_OFF + LF;
+  text += '================================' + LF;
+  text += CENTER + 'Odeme kasada yapilacaktir.' + LF + LF + LF;
+  text += CUT;
+  return text;
+}
+
 
 app.get('/menu', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'menu.html'));
@@ -601,10 +641,17 @@ app.post('/api/print', async (req, res) => {
         await Promise.all(printPromises);
         return res.json({ success: true, printedDirectly: true });
 
+
       } else if (type === 'receipt' && printerSettings.kasaIp) {
         // Receipt always goes to kasa printer
         const receipt = buildKasaReceipt(tx);
         await sendToPrinter(printerSettings.kasaIp, 9100, receipt);
+        return res.json({ success: true, printedDirectly: true });
+
+      } else if (type === 'prebill' && printerSettings.kasaIp) {
+        // Adisyon (pre-bill) — kasa yazıcısına gider, masa kapatılmaz
+        const prebill = buildPreBill(tx);
+        await sendToPrinter(printerSettings.kasaIp, 9100, prebill);
         return res.json({ success: true, printedDirectly: true });
       }
     } catch (err) {

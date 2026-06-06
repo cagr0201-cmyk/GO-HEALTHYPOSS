@@ -1139,6 +1139,43 @@ async function completeKitchenOrder(ticketId) {
   }
 }
 
+// --- ADİSYON YAZDIR (masa kapatılmadan ön fiş) ---
+async function printPreBill() {
+  const tableId = AppState.selectedTable ? AppState.selectedTable.id : 'quick';
+  const order = AppState.activeOrders[tableId];
+
+  if (!order || !order.items || order.items.length === 0) {
+    showToast('Masada yazılacak sipariş yok!', 'warning');
+    return;
+  }
+
+  const tableName = AppState.selectedTable ? AppState.selectedTable.name : 'Hızlı Satış';
+  const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const discountAmount = subtotal * ((order.discount || 0) / 100);
+  const total = subtotal - discountAmount;
+  const now = new Date().toISOString();
+
+  // Adisyon fişi nesnesi (sadece yazdırma için, ödeme işlemi değil)
+  const preBillTx = {
+    id: 'ADİSYON',
+    tableId,
+    tableName,
+    items: [...order.items],
+    subtotal,
+    tax: 0,
+    discount: order.discount || 0,
+    total,
+    paymentMethod: null,
+    orderType: order.orderType || 'dine-in',
+    waiterId: order.waiterId || '',
+    timestamp: now,
+    isPreBill: true
+  };
+
+  showToast('Adisyon yazıcıya gönderiliyor...', 'info');
+  await printReceipt(preBillTx, 'prebill');
+}
+
 // --- MODAL: ÖDEME ALMA VE CHECKOUT ---
 function openCheckoutModal() {
   const tableId = AppState.selectedTable ? AppState.selectedTable.id : 'quick';
@@ -1359,6 +1396,61 @@ function localPrint(tx, type = 'receipt') {
         </div>
         <div style="text-align: center; font-size: 9px; margin-top: 10px; border-top: 1px dashed #000; padding-top: 6px; color:#000;">
           Go Healthy - Kitchen Ticket
+        </div>
+      </div>
+    `;
+  } else if (type === 'prebill') {
+    // Adisyon (Ön Hesap) Fişi — ödeme alınmadan masaya verilen fiş
+    let itemLines = '';
+    tx.items.forEach(item => {
+      const optText = item.option ? ` (${item.option})` : '';
+      itemLines += `
+        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size:12px; color:#000;">
+          <span>${item.quantity}x ${item.name}${optText}</span>
+          <span>${(item.price * item.quantity).toFixed(2)} ₺</span>
+        </div>
+      `;
+    });
+
+    printSection.innerHTML = `
+      <div class="receipt-paper" style="width: 80mm; padding: 10px; background:#fff; color:#000; font-family:monospace; margin:0 auto; box-sizing:border-box;">
+        <div style="text-align:center; margin-bottom: 8px; color:#000;">
+          <div style="font-size:18px; font-weight:bold;">Go Healthy</div>
+          <div style="font-size:11px; font-weight:bold;">THE KITCHEN ALANYA</div>
+          <div style="font-size:9px; color:#333;">Saray Mah. Macaroğlu Sok. 4B / ALANYA</div>
+          <div style="font-size:9px; color:#333;">Tel: +90 501 073 7303</div>
+        </div>
+        <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+        <div style="text-align:center; font-size:13px; font-weight:bold; letter-spacing:1px; color:#000; margin-bottom:6px;">
+          *** ADİSYON ***
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Tarih:</span><span>${dateStr}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Masa:</span><span>${tx.tableName}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Personel:</span><span>${tx.waiterId ? tx.waiterId.toUpperCase() : ''}</span>
+        </div>
+        <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+        <div>${itemLines}</div>
+        <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom: 2px; color:#000;">
+          <span>Ara Toplam:</span><span>${tx.subtotal.toFixed(2)} ₺</span>
+        </div>
+        ${tx.discount > 0 ? `
+        <div style="display:flex; justify-content:space-between; font-size:11px; color: green; margin-bottom: 2px;">
+          <span>İndirim (%${tx.discount}):</span>
+          <span>-${(tx.subtotal * tx.discount / 100).toFixed(2)} ₺</span>
+        </div>` : ''}
+        <div style="display:flex; justify-content:space-between; font-size:15px; font-weight:bold; margin-top: 4px; color:#000; border-top: 2px solid #000; padding-top: 6px;">
+          <span>TOPLAM:</span>
+          <span>${tx.total.toFixed(2)} ₺</span>
+        </div>
+        <div style="border-top:1px dashed #000; margin: 8px 0;"></div>
+        <div style="text-align:center; font-size:10px; margin-top: 8px; color:#555;">
+          Bu bir adisyondur. Ödeme kasada yapılacaktır.
         </div>
       </div>
     `;
