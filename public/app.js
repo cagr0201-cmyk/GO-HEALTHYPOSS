@@ -9,6 +9,16 @@ if (typeof MENU_CATEGORIES !== 'undefined') {
     });
   }
 }
+
+// İçecek kategorileri (mutfak ekranında GÖSTERİLMEZ, kasada yazdırılır)
+const DRINK_CATEGORY_IDS_CLIENT = new Set([
+  'yKsnp6EFSg45UWDaz9LK', // SOFT İÇECEKLER
+  'qrQmFX0ue7YpR9206WDV', // DETOKS&SHOTLAR
+  'tETcPjbPcvEkInJMU7yL', // TAZE SIKIM
+  'HKdwjIy3KG9sKvHfLmzL', // SICAK İÇECEKLER
+  'lKEsPjjMDIjucLMx3QQb', // SOĞUK KAHVELER
+]);
+
 // State ve Temel Mekanizmalar
 
 let AppState = {
@@ -111,10 +121,12 @@ socket.on('incoming_delivery_alert', (data) => {
   triggerIncomingDeliveryClient(data.channelId, data.order);
 });
 
-// Live remote print request listener
+// Live remote print request listener — calls localPrint to avoid API loop
 socket.on('remote_print_request', (data) => {
-  if (AppState.activeStaff && (AppState.activeStaff.role === 'Kasiyer' || AppState.activeStaff.role === 'Müdür')) {
-    printReceipt(data.tx, data.type);
+  if (AppState.activeStaff && (AppState.activeStaff.role === 'Kasiyer' || AppState.activeStaff.role === 'Müdür' || AppState.activeStaff.role === 'Patron')) {
+    if (isPrinterConnected()) {
+      localPrint(data.tx, data.type);
+    }
   }
 });
 
@@ -1019,14 +1031,24 @@ function renderKitchenMonitor() {
     card.className = cardClass;
     card.id = `k-card-${ticket.id}`;
 
+    // Mutfak ekranında sadece yemek ürünlerini göster; içecekler kasa yazıcısına gider
+    const foodItems = ticket.items.filter(item => {
+      const menuItem = AppState.menuItems.find(mi => mi.name === item.name);
+      if (!menuItem) return true; // bilinmeyen ürünleri mutfakta göster
+      return !DRINK_CATEGORY_IDS_CLIENT.has(menuItem.categoryId);
+    });
+
+    if (foodItems.length === 0) return; // sadece içecek varsa kartı gösterme
+
     let itemRows = '';
-    ticket.items.forEach((item, index) => {
+    foodItems.forEach((item, index) => {
+      const realIndex = ticket.items.indexOf(item);
       const cookedClass = item.cooked ? 'cooked' : '';
       const noteHtml = item.note ? `<div class="k-item-note">* Not: ${item.note}</div>` : '';
       const optText = item.option ? ` (${item.option})` : '';
 
       itemRows += `
-        <div class="kitchen-item ${cookedClass}" onclick="toggleKitchenItemCooked('${ticket.id}', ${index})">
+        <div class="kitchen-item ${cookedClass}" onclick="toggleKitchenItemCooked('${ticket.id}', ${realIndex})">
           <div style="display: flex; align-items: flex-start;">
             <span class="k-item-qty">${item.quantity}x</span>
             <div class="k-item-info">
@@ -1275,7 +1297,8 @@ function isPrinterConnected() {
 }
 
 async function printReceipt(tx, type = 'receipt') {
-  let printedDirectly = false;
+  // Önce sunucuya gönder: IP yazıcıları etkinse sessizce yazdırır,
+  // değilse socket ile diğer cihazlara yayar (onlar localPrint ile basar)
   try {
     const response = await fetch('/api/print', {
       method: 'POST',
@@ -1285,19 +1308,23 @@ async function printReceipt(tx, type = 'receipt') {
     if (response.ok) {
       const resData = await response.json();
       if (resData.printedDirectly) {
-        printedDirectly = true;
-        showToast('Sipariş ağ yazıcısına sessizce gönderildi.', 'success');
+        showToast('Sipariş ağ yazıcısına sessizce gönderildi. ✅', 'success');
         return;
       }
     }
   } catch (e) {
-    console.error('Direct IP print error:', e);
+    console.error('Print API error:', e);
   }
 
-  if (!isPrinterConnected()) {
-    showToast('Bu cihaz yazıcıya bağlı değil ve ağ yazıcıları aktif değil!', 'warning');
-    return;
+  // IP yazıcı yoksa veya başarısız olduysa bu cihazdan tarayıcı ile bas
+  if (isPrinterConnected()) {
+    localPrint(tx, type);
   }
+}
+
+// Sadece tarayıcı üzerinden basar — döngü oluşturmaz, API'ye ÇAĞIRMAZ
+function localPrint(tx, type = 'receipt') {
+  if (!isPrinterConnected()) return;
 
   const printSection = document.getElementById('print-receipt-section');
   if (!printSection) return;
