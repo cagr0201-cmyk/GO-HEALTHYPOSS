@@ -1,10 +1,10 @@
-const CACHE_NAME = 'go-healthy-pos-v5';
+const CACHE_NAME = 'go-healthy-pos-v6';
 const ASSETS = [
   '/',
   '/index.html',
-  '/styles.css?v=d0718e1b_v5',
-  '/app.js?v=d0718e1b_v5',
-  '/data.js?v=d0718e1b_v5'
+  '/styles.css?v=d0718e1b_v6',
+  '/app.js?v=d0718e1b_v6',
+  '/data.js?v=d0718e1b_v6'
 ];
 
 self.addEventListener('install', event => {

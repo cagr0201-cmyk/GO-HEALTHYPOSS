@@ -3870,19 +3870,35 @@ async function testPrinterConnection() {
 
 // --- GÜN SONU / KASA KAPATMA MANTIĞI ---
 function renderClosingsTab() {
-  const filteredSales = filterHistoryByPeriod();
-  const filteredExpenses = filterExpensesByPeriod();
+  // Find the last daily closing to calculate expected totals since then
+  const lastClosing = AppState.dailyClosings && AppState.dailyClosings[0];
+  const lastClosingTime = lastClosing ? new Date(lastClosing.timestamp) : null;
   
-  AppState.currentExpectedCashSales = filteredSales.filter(tx => (tx.paymentMethod || 'CASH') === 'CASH').reduce((sum, tx) => sum + tx.total, 0);
-  AppState.currentExpectedCardSales = filteredSales.filter(tx => tx.paymentMethod === 'CARD').reduce((sum, tx) => sum + tx.total, 0);
-  AppState.currentExpectedMealSales = filteredSales.filter(tx => tx.paymentMethod === 'MEALCARD').reduce((sum, tx) => sum + tx.total, 0);
-  AppState.currentExpectedOtherSales = filteredSales.filter(tx => tx.paymentMethod === 'OTHER').reduce((sum, tx) => sum + tx.total, 0);
-  AppState.currentExpectedCashExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+  let activeSales = [];
+  let activeExpenses = [];
+  
+  if (lastClosingTime) {
+    activeSales = AppState.salesHistory.filter(tx => new Date(tx.timestamp) > lastClosingTime);
+    activeExpenses = AppState.expenses.filter(e => new Date(e.timestamp) > lastClosingTime);
+  } else {
+    // If no previous closing, default to today's sales and expenses (from 00:00:00 till now)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    activeSales = AppState.salesHistory.filter(tx => new Date(tx.timestamp) >= todayStart);
+    activeExpenses = AppState.expenses.filter(e => new Date(e.timestamp) >= todayStart);
+  }
+  
+  AppState.currentExpectedCashSales = activeSales.filter(tx => (tx.paymentMethod || 'CASH') === 'CASH').reduce((sum, tx) => sum + tx.total, 0);
+  AppState.currentExpectedCardSales = activeSales.filter(tx => tx.paymentMethod === 'CARD').reduce((sum, tx) => sum + tx.total, 0);
+  AppState.currentExpectedMealSales = activeSales.filter(tx => tx.paymentMethod === 'MEALCARD').reduce((sum, tx) => sum + tx.total, 0);
+  AppState.currentExpectedOtherSales = activeSales.filter(tx => tx.paymentMethod === 'OTHER').reduce((sum, tx) => sum + tx.total, 0);
+  AppState.currentExpectedCashExpenses = activeExpenses.reduce((sum, e) => sum + e.amount, 0);
   
   document.getElementById('c-exp-cash-sales').textContent = `${AppState.currentExpectedCashSales.toFixed(2)} ₺`;
   document.getElementById('c-exp-cash-expenses').textContent = `-${AppState.currentExpectedCashExpenses.toFixed(2)} ₺`;
   
   const startingCash = parseFloat(document.getElementById('c-starting-cash').value) || 0;
+  
   const expCashTotal = startingCash + AppState.currentExpectedCashSales - AppState.currentExpectedCashExpenses;
   document.getElementById('c-exp-cash-total').textContent = `${expCashTotal.toFixed(2)} ₺`;
   
@@ -3981,6 +3997,11 @@ async function submitDailyClosing(event) {
       // Refresh local list
       await fetchClosingsFromServer();
       renderClosingsTab();
+      
+      // Show explicit confirmation alert
+      setTimeout(() => {
+        alert("🎉 Gün Sonu (Z Raporu) İşlemi Başarıyla Tamamlandı!\n\nRapor veritabanına kaydedildi ve termal yazıcıya gönderildi.\nSistemdeki kasa ve ciro beklentileri sıfırlandı.");
+      }, 100);
     } else {
       showToast('Gün sonu işlemi kaydedilemedi!', 'error');
     }
