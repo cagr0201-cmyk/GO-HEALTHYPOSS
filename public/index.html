@@ -347,6 +347,7 @@
           <span class="dashboard-tab-item active" id="tab-db-charts" onclick="switchDashboardTab('charts')">Ciro & Satış Raporu</span>
           <span class="dashboard-tab-item" id="tab-db-ledger" onclick="switchDashboardTab('ledger')">Geçmiş Adisyon Defteri</span>
           <span class="dashboard-tab-item" id="tab-db-expenses" onclick="switchDashboardTab('expenses')">Gider Takibi</span>
+          <span class="dashboard-tab-item" id="tab-db-closings" onclick="switchDashboardTab('closings')">Gün Sonu (Z Raporu)</span>
         </div>
 
         <!-- SEÇENEK 1: GRAFİKLER VE CIRO ANALİZİ -->
@@ -506,6 +507,87 @@
                   </thead>
                   <tbody id="expense-list-tbody">
                     <!-- Dinamik Gider Listesi Satırları -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇENEK 4: GÜN SONU / KASA KAPATMA -->
+        <div id="db-view-closings" style="display: none;">
+          <div class="closings-dashboard-layout">
+            <!-- Sol Panel: Gün Sonu Yap Formu -->
+            <div class="closing-form-card" id="closing-form-panel">
+              <h3 style="font-family: var(--font-brand); color: var(--accent-gold); margin-bottom: 16px; font-size: 18px; border-bottom: 1px solid var(--border-light); padding-bottom: 8px;">Kasa Kapatma (Gün Sonu)</h3>
+              <form id="form-daily-closing" onsubmit="submitDailyClosing(event)">
+                <div class="form-group">
+                  <label>Devir Nakit (Gün Başı):</label>
+                  <input type="number" id="c-starting-cash" value="500" min="0" step="any" oninput="calculateClosingDiscrepancies()" required>
+                </div>
+                
+                <div style="margin: 16px 0; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-light); border-radius: 12px;">
+                  <h4 style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Sistemde Beklenen Tutarlar</h4>
+                  <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+                    <div style="display: flex; justify-content: space-between;"><span>Nakit Satışlar:</span><span id="c-exp-cash-sales">0.00 ₺</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Nakit Giderler:</span><span id="c-exp-cash-expenses" style="color: var(--status-busy);">-0.00 ₺</span></div>
+                    <div style="display: flex; justify-content: space-between; font-weight: 700; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px;"><span>Beklenen Kasa Nakit:</span><span id="c-exp-cash-total">0.00 ₺</span></div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px;"><span>Beklenen Kredi Kartı:</span><span id="c-exp-card">0.00 ₺</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Beklenen Yemek Kartı:</span><span id="c-exp-meal">0.00 ₺</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Beklenen Diğer:</span><span id="c-exp-other">0.00 ₺</span></div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Kasadaki Nakit (Sayılan):</label>
+                  <input type="number" id="c-counted-cash" value="0" min="0" step="any" oninput="calculateClosingDiscrepancies()" required>
+                  <span class="discrepancy-badge" id="badge-cash-diff">Fark: 0.00 ₺</span>
+                </div>
+                <div class="form-group">
+                  <label>Kredi Kartı POS Toplamı:</label>
+                  <input type="number" id="c-counted-card" value="0" min="0" step="any" oninput="calculateClosingDiscrepancies()" required>
+                  <span class="discrepancy-badge" id="badge-card-diff">Fark: 0.00 ₺</span>
+                </div>
+                <div class="form-group-row">
+                  <div class="form-group">
+                    <label>Yemek Kartı:</label>
+                    <input type="number" id="c-counted-meal" value="0" min="0" step="any" oninput="calculateClosingDiscrepancies()" required>
+                    <span class="discrepancy-badge" id="badge-meal-diff">Fark: 0.00 ₺</span>
+                  </div>
+                  <div class="form-group">
+                    <label>Diğer:</label>
+                    <input type="number" id="c-counted-other" value="0" min="0" step="any" oninput="calculateClosingDiscrepancies()" required>
+                    <span class="discrepancy-badge" id="badge-other-diff">Fark: 0.00 ₺</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Gün Sonu Notları:</label>
+                  <textarea id="c-notes" placeholder="Kasa açığı/fazlası sebebi veya genel notlar..." style="height: 60px; resize: none; background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); border-radius: 8px; padding: 8px; color: var(--text-primary); font-size: 12px;"></textarea>
+                </div>
+                <button type="submit" class="cart-btn" style="background: var(--status-free); color: white; width: 100%; border-radius: 12px; font-weight: 600; padding: 12px; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                  <i data-lucide="check-square"></i> Gün Sonu İşlemini Kapat & Yazdır
+                </button>
+              </form>
+            </div>
+            
+            <!-- Sağ Panel: Geçmiş Gün Sonu Raporları Tablosu -->
+            <div class="closing-list-card">
+              <h3 style="font-family: var(--font-brand); color: var(--accent-gold); margin-bottom: 16px; font-size: 18px; border-bottom: 1px solid var(--border-light); padding-bottom: 8px;">Geçmiş Gün Sonu Raporları</h3>
+              <div style="overflow-x: auto; max-height: 520px; overflow-y: auto;">
+                <table class="ledger-table" style="width: 100%; font-size: 12px;">
+                  <thead>
+                    <tr>
+                      <th>Tarih</th>
+                      <th>Kapatan</th>
+                      <th>Devir</th>
+                      <th>Ciro / Gider</th>
+                      <th>Sayılan / Beklenen</th>
+                      <th>Fark</th>
+                      <th>İşlem</th>
+                    </tr>
+                  </thead>
+                  <tbody id="closings-table-body">
+                    <!-- Dinamik Gün Sonları -->
                   </tbody>
                 </table>
               </div>

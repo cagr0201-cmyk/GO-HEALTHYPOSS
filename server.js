@@ -215,6 +215,64 @@ function buildPreBill(tx) {
   return text;
 }
 
+function buildZReport(tx) {
+  const ESC = '\x1b';
+  const INIT = ESC + '@';
+  const BOLD_ON = ESC + 'E\x01';
+  const BOLD_OFF = ESC + 'E\x00';
+  const CENTER = ESC + 'a\x01';
+  const LEFT = ESC + 'a\x00';
+  const CUT = '\x1d' + 'V\x41\x00';
+  const LF = '\n';
+
+  const date = new Date(tx.timestamp).toLocaleString('tr-TR');
+
+  let text = INIT + CENTER + BOLD_ON + 'Go Healthy THE KITCHEN' + BOLD_OFF + LF;
+  text += 'Saray Mah. Macaroglu Sok. 4B / ALANYA' + LF;
+  text += '================================' + LF;
+  text += CENTER + BOLD_ON + '*** GUN SONU (Z) RAPORU ***' + BOLD_OFF + LF;
+  text += '================================' + LF;
+  text += LEFT + 'Rapor ID: ' + tx.id + LF;
+  text += 'Tarih:    ' + date + LF;
+  text += 'Kapatan:  ' + (tx.closedBy ? tx.closedBy.toUpperCase() : '') + LF;
+  text += '--------------------------------' + LF;
+  
+  text += BOLD_ON + 'CIRO & GIDER OZETI:' + BOLD_OFF + LF;
+  text += 'Devir Nakit:       ' + tx.startingCash.toFixed(2) + ' TL' + LF;
+  text += 'Toplam Ciro(Brut): ' + tx.totalRevenue.toFixed(2) + ' TL' + LF;
+  text += 'Toplam Gider:      ' + tx.totalExpenses.toFixed(2) + ' TL' + LF;
+  text += '--------------------------------' + LF;
+  
+  text += BOLD_ON + 'KASA SAYIM DETAYLARI:' + BOLD_OFF + LF;
+  text += 'Nakit (Say/Bek):   ' + tx.countedCash.toFixed(2) + ' / ' + tx.expectedCash.toFixed(2) + ' TL' + LF;
+  text += 'Kredi K.(Say/Bek): ' + tx.countedCard.toFixed(2) + ' / ' + tx.expectedCard.toFixed(2) + ' TL' + LF;
+  text += 'Yemek K.(Say/Bek): ' + tx.countedMealcard.toFixed(2) + ' / ' + tx.expectedMealcard.toFixed(2) + ' TL' + LF;
+  text += 'Diger   (Say/Bek): ' + tx.countedOther.toFixed(2) + ' / ' + tx.expectedOther.toFixed(2) + ' TL' + LF;
+  text += '--------------------------------' + LF;
+  
+  const cashDiff = tx.countedCash - tx.expectedCash;
+  const cardDiff = tx.countedCard - tx.expectedCard;
+  const mealDiff = tx.countedMealcard - tx.expectedMealcard;
+  const otherDiff = tx.countedOther - tx.expectedOther;
+  const totalDiff = cashDiff + cardDiff + mealDiff + otherDiff;
+  
+  let diffStatus = 'DENGEDE';
+  if (totalDiff < -0.01) diffStatus = 'EKSIK (' + totalDiff.toFixed(2) + ' TL)';
+  else if (totalDiff > 0.01) diffStatus = 'FAZLA (+' + totalDiff.toFixed(2) + ' TL)';
+  
+  text += BOLD_ON + 'KASA DURUMU:       ' + diffStatus + BOLD_OFF + LF;
+  
+  if (tx.notes) {
+    text += '--------------------------------' + LF;
+    text += 'Notlar: ' + tx.notes + LF;
+  }
+  
+  text += '================================' + LF;
+  text += CENTER + BOLD_ON + 'RAPOR ALINDI' + BOLD_OFF + LF + LF + LF;
+  text += CUT;
+  return text;
+}
+
 
 app.get('/menu', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'menu.html'));
@@ -566,8 +624,45 @@ app.post('/api/settings/reset', async (req, res) => {
     await db.run(`DROP TABLE IF EXISTS sales_history`);
     await db.run(`DROP TABLE IF EXISTS staff`);
     await db.run(`DROP TABLE IF EXISTS expenses`);
+    await db.run(`DROP TABLE IF EXISTS daily_closings`);
     await db.initDatabase();
 
+    const state = await db.getAppState();
+    io.emit('sync_state', state);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Daily Closings (Gün Sonu) APIs
+app.get('/api/closings', async (req, res) => {
+  try {
+    const closings = await db.all("SELECT * FROM daily_closings ORDER BY timestamp DESC");
+    res.json(closings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/closings', async (req, res) => {
+  const {
+    id, timestamp, closedBy, startingCash,
+    expectedCash, countedCash, expectedCard, countedCard,
+    expectedMealcard, countedMealcard, expectedOther, countedOther,
+    totalRevenue, totalExpenses, notes
+  } = req.body;
+  try {
+    await db.run(
+      `INSERT INTO daily_closings (id, timestamp, closedBy, startingCash, expectedCash, countedCash, expectedCard, countedCard, expectedMealcard, countedMealcard, expectedOther, countedOther, totalRevenue, totalExpenses, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id, timestamp, closedBy, Number(startingCash),
+        Number(expectedCash), Number(countedCash), Number(expectedCard), Number(countedCard),
+        Number(expectedMealcard), Number(countedMealcard), Number(expectedOther), Number(countedOther),
+        Number(totalRevenue), Number(totalExpenses), notes || ''
+      ]
+    );
     const state = await db.getAppState();
     io.emit('sync_state', state);
     res.json({ success: true });
@@ -669,6 +764,11 @@ app.post('/api/print', async (req, res) => {
         // Adisyon (pre-bill) — kasa yazıcısına gider, masa kapatılmaz
         const prebill = buildPreBill(tx);
         await sendToPrinter(printerSettings.kasaIp, 9100, prebill);
+        return res.json({ success: true, printedDirectly: true });
+      } else if (type === 'zreport' && printerSettings.kasaIp) {
+        // Z Raporu (kasa kapatma) — kasa yazıcısına gider
+        const zreport = buildZReport(tx);
+        await sendToPrinter(printerSettings.kasaIp, 9100, zreport);
         return res.json({ success: true, printedDirectly: true });
       }
     } catch (err) {

@@ -171,6 +171,24 @@ async function initDatabase() {
     timestamp TEXT
   )`);
 
+  await run(`CREATE TABLE IF NOT EXISTS daily_closings (
+    id TEXT PRIMARY KEY,
+    timestamp TEXT,
+    closedBy TEXT,
+    startingCash REAL,
+    expectedCash REAL,
+    countedCash REAL,
+    expectedCard REAL,
+    countedCard REAL,
+    expectedMealcard REAL,
+    countedMealcard REAL,
+    expectedOther REAL,
+    countedOther REAL,
+    totalRevenue REAL,
+    totalExpenses REAL,
+    notes TEXT
+  )`);
+
   await run(`CREATE TABLE IF NOT EXISTS staff (
     id TEXT PRIMARY KEY,
     name TEXT,

@@ -400,6 +400,18 @@ async function fetchSalesHistoryFromServer() {
   }
 }
 
+async function fetchClosingsFromServer() {
+  try {
+    const res = await fetch('/api/closings');
+    if (!res.ok) throw new Error('Closings fetch failed');
+    const data = await res.json();
+    AppState.dailyClosings = data;
+  } catch (err) {
+    console.error(err);
+    showToast('Gün sonu raporları yüklenemedi!', 'error');
+  }
+}
+
 async function switchScreen(viewName) {
   // Patron rolü Analiz (dashboard) dışındaki ekranlara geçemez
   if (AppState.activeStaff && AppState.activeStaff.role === 'Patron' && viewName !== 'dashboard') {
@@ -444,6 +456,7 @@ async function switchScreen(viewName) {
     mainTitle.textContent = 'Canlı Satış Raporları & Analitik';
     subTitle.textContent = 'Günlük ciro ve ürün tercih grafikleri';
     await fetchSalesHistoryFromServer();
+    await fetchClosingsFromServer();
     renderDashboard();
   } else if (viewName === 'settings') {
     mainTitle.textContent = 'Sistem Yönetim & Reçete Ayarları';
@@ -1666,6 +1679,88 @@ function localPrint(tx, type = 'receipt') {
         </div>
       </div>
     `;
+  } else if (type === 'zreport') {
+    const cashDiff = tx.countedCash - tx.expectedCash;
+    const cardDiff = tx.countedCard - tx.expectedCard;
+    const mealDiff = tx.countedMealcard - tx.expectedMealcard;
+    const otherDiff = tx.countedOther - tx.expectedOther;
+    const totalDiff = cashDiff + cardDiff + mealDiff + otherDiff;
+    
+    let diffStatus = 'DENGEDE';
+    if (totalDiff < -0.01) diffStatus = `EKSIK (${totalDiff.toFixed(2)} TL)`;
+    else if (totalDiff > 0.01) diffStatus = `FAZLA (+${totalDiff.toFixed(2)} TL)`;
+
+    printSection.innerHTML = `
+      <div class="receipt-paper" style="width: 80mm; padding: 10px; background:#fff; color:#000; font-family:monospace; margin:0 auto; box-sizing:border-box;">
+        <div style="text-align:center; margin-bottom: 8px; color:#000;">
+          <div style="font-size:18px; font-weight:bold;">Go Healthy</div>
+          <div style="font-size:11px; font-weight:bold;">THE KITCHEN ALANYA</div>
+          <div style="font-size:9px; color:#333;">Saray Mah. Macaroglu Sok. 4B / ALANYA</div>
+        </div>
+        <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+        <div style="text-align:center; font-size:13px; font-weight:bold; letter-spacing:1px; color:#000; margin-bottom:6px;">
+          *** GÜN SONU (Z) RAPORU ***
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Rapor ID:</span><span>${tx.id}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Tarih:</span><span>${dateStr}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Kapatan:</span><span>${tx.closedBy ? tx.closedBy.toUpperCase() : ''}</span>
+        </div>
+        
+        <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+        <div style="font-size:11px; font-weight:bold; margin-bottom: 4px; color:#000;">CİRO & GİDER ÖZETİ:</div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Devir Nakit:</span><span>${tx.startingCash.toFixed(2)} ₺</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Toplam Ciro (Brüt):</span><span>${tx.totalRevenue.toFixed(2)} ₺</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Toplam Gider:</span><span>${tx.totalExpenses.toFixed(2)} ₺</span>
+        </div>
+
+        <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+        <div style="font-size:11px; font-weight:bold; margin-bottom: 4px; color:#000;">KASA SAYIM DETAYLARI:</div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Nakit (Sayılan / Beklenen):</span>
+          <span>${tx.countedCash.toFixed(2)} / ${tx.expectedCash.toFixed(2)} ₺</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Kredi Kartı (Say. / Bek.):</span>
+          <span>${tx.countedCard.toFixed(2)} / ${tx.expectedCard.toFixed(2)} ₺</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Yemek Kartı (Say. / Bek.):</span>
+          <span>${tx.countedMealcard.toFixed(2)} / ${tx.expectedMealcard.toFixed(2)} ₺</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Diğer (Say. / Bek.):</span>
+          <span>${tx.countedOther.toFixed(2)} / ${tx.expectedOther.toFixed(2)} ₺</span>
+        </div>
+
+        <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold; color:#000;">
+          <span>KASA DURUMU:</span>
+          <span>${diffStatus}</span>
+        </div>
+
+        ${tx.notes ? `
+        <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
+        <div style="font-size:10px; color:#000; word-break:break-word;">
+          <strong>Notlar:</strong> ${tx.notes}
+        </div>
+        ` : ''}
+
+        <div style="border-top:1.5px solid #000; margin: 8px 0;"></div>
+        <div style="text-align:center; font-size:10px; font-weight:bold; color:#000;">
+          RAPOR ALINDI
+        </div>
+      </div>
+    `;
   }
 
   document.body.classList.add('printing-receipt');
@@ -2720,18 +2815,22 @@ function switchDashboardTab(tabName) {
   const tabCharts = document.getElementById('tab-db-charts');
   const tabLedger = document.getElementById('tab-db-ledger');
   const tabExpenses = document.getElementById('tab-db-expenses');
+  const tabClosings = document.getElementById('tab-db-closings');
   
   const viewCharts = document.getElementById('db-view-charts');
   const viewLedger = document.getElementById('db-view-ledger');
   const viewExpenses = document.getElementById('db-view-expenses');
+  const viewClosings = document.getElementById('db-view-closings');
   
   if (tabCharts) tabCharts.classList.remove('active');
   if (tabLedger) tabLedger.classList.remove('active');
   if (tabExpenses) tabExpenses.classList.remove('active');
+  if (tabClosings) tabClosings.classList.remove('active');
   
   if (viewCharts) viewCharts.style.display = 'none';
   if (viewLedger) viewLedger.style.display = 'none';
   if (viewExpenses) viewExpenses.style.display = 'none';
+  if (viewClosings) viewClosings.style.display = 'none';
 
   if (tabName === 'charts') {
     if (tabCharts) tabCharts.classList.add('active');
@@ -2749,6 +2848,10 @@ function switchDashboardTab(tabName) {
       dateInput.value = new Date().toISOString().split('T')[0];
     }
     renderExpensesTable();
+  } else if (tabName === 'closings') {
+    if (tabClosings) tabClosings.classList.add('active');
+    if (viewClosings) viewClosings.style.display = 'block';
+    renderClosingsTab();
   }
 }
 
@@ -3763,6 +3866,200 @@ async function testPrinterConnection() {
     console.error(err);
     showToast('Yazıcı bağlantı testi başarısız oldu!', 'error');
   }
+}
+
+// --- GÜN SONU / KASA KAPATMA MANTIĞI ---
+function renderClosingsTab() {
+  const filteredSales = filterHistoryByPeriod();
+  const filteredExpenses = filterExpensesByPeriod();
+  
+  AppState.currentExpectedCashSales = filteredSales.filter(tx => (tx.paymentMethod || 'CASH') === 'CASH').reduce((sum, tx) => sum + tx.total, 0);
+  AppState.currentExpectedCardSales = filteredSales.filter(tx => tx.paymentMethod === 'CARD').reduce((sum, tx) => sum + tx.total, 0);
+  AppState.currentExpectedMealSales = filteredSales.filter(tx => tx.paymentMethod === 'MEALCARD').reduce((sum, tx) => sum + tx.total, 0);
+  AppState.currentExpectedOtherSales = filteredSales.filter(tx => tx.paymentMethod === 'OTHER').reduce((sum, tx) => sum + tx.total, 0);
+  AppState.currentExpectedCashExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+  
+  document.getElementById('c-exp-cash-sales').textContent = `${AppState.currentExpectedCashSales.toFixed(2)} ₺`;
+  document.getElementById('c-exp-cash-expenses').textContent = `-${AppState.currentExpectedCashExpenses.toFixed(2)} ₺`;
+  
+  const startingCash = parseFloat(document.getElementById('c-starting-cash').value) || 0;
+  const expCashTotal = startingCash + AppState.currentExpectedCashSales - AppState.currentExpectedCashExpenses;
+  document.getElementById('c-exp-cash-total').textContent = `${expCashTotal.toFixed(2)} ₺`;
+  
+  document.getElementById('c-exp-card').textContent = `${AppState.currentExpectedCardSales.toFixed(2)} ₺`;
+  document.getElementById('c-exp-meal').textContent = `${AppState.currentExpectedMealSales.toFixed(2)} ₺`;
+  document.getElementById('c-exp-other').textContent = `${AppState.currentExpectedOtherSales.toFixed(2)} ₺`;
+  
+  calculateClosingDiscrepancies();
+  renderClosingsList();
+}
+
+function calculateClosingDiscrepancies() {
+  const startingCash = parseFloat(document.getElementById('c-starting-cash').value) || 0;
+  const expCash = startingCash + (AppState.currentExpectedCashSales || 0) - (AppState.currentExpectedCashExpenses || 0);
+  document.getElementById('c-exp-cash-total').textContent = `${expCash.toFixed(2)} ₺`;
+  
+  const countedCash = parseFloat(document.getElementById('c-counted-cash').value) || 0;
+  const countedCard = parseFloat(document.getElementById('c-counted-card').value) || 0;
+  const countedMeal = parseFloat(document.getElementById('c-counted-meal').value) || 0;
+  const countedOther = parseFloat(document.getElementById('c-counted-other').value) || 0;
+  
+  const cashDiff = countedCash - expCash;
+  const cardDiff = countedCard - (AppState.currentExpectedCardSales || 0);
+  const mealDiff = countedMeal - (AppState.currentExpectedMealSales || 0);
+  const otherDiff = countedOther - (AppState.currentExpectedOtherSales || 0);
+  
+  updateDiscrepancyBadge('badge-cash-diff', cashDiff);
+  updateDiscrepancyBadge('badge-card-diff', cardDiff);
+  updateDiscrepancyBadge('badge-meal-diff', mealDiff);
+  updateDiscrepancyBadge('badge-other-diff', otherDiff);
+}
+
+function updateDiscrepancyBadge(elementId, diff) {
+  const badge = document.getElementById(elementId);
+  if (!badge) return;
+  
+  if (Math.abs(diff) < 0.01) {
+    badge.textContent = 'Fark: 0.00 ₺ (Dengede)';
+    badge.className = 'discrepancy-badge ok';
+  } else if (diff < 0) {
+    badge.textContent = `Fark: ${diff.toFixed(2)} ₺ (Eksik)`;
+    badge.className = 'discrepancy-badge diff';
+  } else {
+    badge.textContent = `Fark: +${diff.toFixed(2)} ₺ (Fazla)`;
+    badge.className = 'discrepancy-badge ok';
+  }
+}
+
+async function submitDailyClosing(event) {
+  if (event) event.preventDefault();
+  
+  const startingCash = parseFloat(document.getElementById('c-starting-cash').value) || 0;
+  const countedCash = parseFloat(document.getElementById('c-counted-cash').value) || 0;
+  const countedCard = parseFloat(document.getElementById('c-counted-card').value) || 0;
+  const countedMeal = parseFloat(document.getElementById('c-counted-meal').value) || 0;
+  const countedOther = parseFloat(document.getElementById('c-counted-other').value) || 0;
+  const notes = document.getElementById('c-notes').value.trim();
+  
+  const expCash = startingCash + AppState.currentExpectedCashSales - AppState.currentExpectedCashExpenses;
+  const totalRevenue = AppState.currentExpectedCashSales + AppState.currentExpectedCardSales + AppState.currentExpectedMealSales + AppState.currentExpectedOtherSales;
+  const totalExpenses = AppState.currentExpectedCashExpenses;
+  
+  const closedBy = AppState.activeStaff ? AppState.activeStaff.name : 'Garson';
+  const timestamp = new Date().toISOString();
+  const id = 'Z-' + new Date().toISOString().split('T')[0].replace(/-/g, '') + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+  
+  const closingData = {
+    id, timestamp, closedBy, startingCash,
+    expectedCash: expCash, countedCash,
+    expectedCard: AppState.currentExpectedCardSales, countedCard,
+    expectedMealcard: AppState.currentExpectedMealSales, countedMealcard: countedMeal,
+    expectedOther: AppState.currentExpectedOtherSales, countedOther: countedOther,
+    totalRevenue, totalExpenses, notes
+  };
+  
+  try {
+    const res = await fetch('/api/closings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(closingData)
+    });
+    
+    if (res.ok) {
+      showToast('Gün sonu kasa kapatma işlemi başarıyla kaydedildi!', 'success');
+      
+      // Reset count fields
+      document.getElementById('c-counted-cash').value = 0;
+      document.getElementById('c-counted-card').value = 0;
+      document.getElementById('c-counted-meal').value = 0;
+      document.getElementById('c-counted-other').value = 0;
+      document.getElementById('c-notes').value = '';
+      
+      // Print closing Z-report
+      await printReceipt(closingData, 'zreport');
+      
+      // Refresh local list
+      await fetchClosingsFromServer();
+      renderClosingsTab();
+    } else {
+      showToast('Gün sonu işlemi kaydedilemedi!', 'error');
+    }
+  } catch (err) {
+    console.error('Error closing register:', err);
+    showToast('Gün sonu işlemi kaydedilemedi!', 'error');
+  }
+}
+
+function renderClosingsList() {
+  const tbody = document.getElementById('closings-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  
+  if (!AppState.dailyClosings || AppState.dailyClosings.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Geçmiş gün sonu raporu bulunmuyor.</td>
+      </tr>
+    `;
+    return;
+  }
+  
+  AppState.dailyClosings.forEach(c => {
+    const tr = document.createElement('tr');
+    
+    const dateStr = new Date(c.timestamp).toLocaleString('tr-TR', {
+      day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    
+    const cashDiff = c.countedCash - c.expectedCash;
+    const cardDiff = c.countedCard - c.expectedCard;
+    const mealDiff = c.countedMealcard - c.expectedMealcard;
+    const otherDiff = c.countedOther - c.expectedOther;
+    const totalDiff = cashDiff + cardDiff + mealDiff + otherDiff;
+    
+    let diffText = 'Eşit';
+    let diffClass = 'status-badge active'; // green
+    if (totalDiff < -0.01) {
+      diffText = `${totalDiff.toFixed(2)} ₺ Eksik`;
+      diffClass = 'status-badge busy'; // red
+    } else if (totalDiff > 0.01) {
+      diffText = `+${totalDiff.toFixed(2)} ₺ Fazla`;
+      diffClass = 'status-badge active'; // green
+    }
+    
+    tr.innerHTML = `
+      <td>${dateStr}</td>
+      <td style="font-weight: 600;">${c.closedBy.toUpperCase()}</td>
+      <td>${c.startingCash.toFixed(2)} ₺</td>
+      <td>
+        <div>Ciro: ${c.totalRevenue.toFixed(2)} ₺</div>
+        <div style="color: var(--status-busy); font-size: 11px;">Gider: ${c.totalExpenses.toFixed(2)} ₺</div>
+      </td>
+      <td>
+        <div>Nakit: ${c.countedCash.toFixed(2)} / ${c.expectedCash.toFixed(2)} ₺</div>
+        <div style="font-size: 11px; color: var(--text-secondary);">Kart: ${c.countedCard.toFixed(2)} / ${c.expectedCard.toFixed(2)} ₺</div>
+      </td>
+      <td><span class="${diffClass}">${diffText}</span></td>
+      <td>
+        <button onclick="printZReportDirectly('${c.id}')" style="background: rgba(222,193,138,0.15); border: 1px solid var(--accent-gold); color: var(--accent-gold); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+          <i data-lucide="printer" style="width: 12px; height: 12px;"></i> Yazdır
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  lucide.createIcons();
+}
+
+async function printZReportDirectly(closingId) {
+  if (!AppState.dailyClosings) return;
+  const c = AppState.dailyClosings.find(x => x.id === closingId);
+  if (!c) {
+    showToast('Gün sonu kaydı bulunamadı!', 'error');
+    return;
+  }
+  showToast('Rapor yazıcıya gönderiliyor...', 'info');
+  await printReceipt(c, 'zreport');
 }
 
 // Register Service Worker for PWA installation
