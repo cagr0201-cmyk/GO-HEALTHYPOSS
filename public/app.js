@@ -1610,7 +1610,7 @@ function localPrint(tx, type = 'receipt') {
         </div>
       </div>
     `;
-  } else {
+  } else if (type !== 'zreport') {
     let itemLines = '';
     tx.items.forEach(item => {
       const optText = item.option ? ` (${item.option})` : '';
