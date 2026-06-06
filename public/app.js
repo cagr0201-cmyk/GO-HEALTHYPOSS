@@ -1356,7 +1356,8 @@ async function processPaymentAndPrint() {
 function isPrinterConnected() {
   const isElectron = (typeof window !== 'undefined' && window.process && window.process.type) || (navigator.userAgent.includes('Electron'));
   if (isElectron) return true;
-  if (AppState.activeStaff && (AppState.activeStaff.role === 'Kasiyer' || AppState.activeStaff.role === 'Müdür')) return true;
+  if (localStorage.getItem('isPrinterTerminal') === 'true') return true;
+  if (AppState.activeStaff && (AppState.activeStaff.role === 'Kasiyer' || AppState.activeStaff.role === 'Müdür' || AppState.activeStaff.role === 'Patron')) return true;
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return true;
   return false;
 }
@@ -3557,7 +3558,8 @@ async function savePrinterSettings(e) {
       body: JSON.stringify({ kasaIp, mutfakIp, enabled })
     });
     if (res.ok) {
-      showToast('Yazıcı ayarları başarıyla kaydedildi.', 'success');
+      localStorage.setItem('isPrinterTerminal', 'true');
+      showToast('Yazıcı ayarları başarıyla kaydedildi. Bu cihaz yazıcı terminali olarak belirlendi.', 'success');
     } else {
       throw new Error('Kaydetme hatası');
     }
