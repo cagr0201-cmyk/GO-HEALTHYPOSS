@@ -688,12 +688,17 @@ app.get('/api/settings/printers', (req, res) => {
 });
 
 // Printer settings SAVE
-app.post('/api/settings/printers', (req, res) => {
+app.post('/api/settings/printers', async (req, res) => {
   const { kasaIp, mutfakIp, enabled } = req.body;
   printerSettings.kasaIp = (kasaIp || '').trim();
   printerSettings.mutfakIp = (mutfakIp || '').trim();
   printerSettings.enabled = !!enabled;
   console.log('Printer settings updated:', printerSettings);
+  try {
+    await db.saveSetting('printers', printerSettings);
+  } catch (err) {
+    console.error('Failed to save printer settings to DB:', err);
+  }
   res.json({ success: true });
 });
 
@@ -730,7 +735,22 @@ io.on('connection', (socket) => {
 
 // --- SERVER LAUNCH ---
 db.initDatabase()
-  .then(() => {
+  .then(async () => {
+    // Load printer settings from database!
+    try {
+      const savedPrinters = await db.getSetting('printers');
+      if (savedPrinters) {
+        printerSettings = {
+          kasaIp: savedPrinters.kasaIp || '',
+          mutfakIp: savedPrinters.mutfakIp || '',
+          enabled: !!savedPrinters.enabled
+        };
+        console.log('Loaded printer settings from database:', printerSettings);
+      }
+    } catch (e) {
+      console.error('Failed to load printer settings from DB:', e);
+    }
+
     server.listen(PORT, () => {
       console.log(`=========================================`);
       console.log(`Go Healthy POS Server`);

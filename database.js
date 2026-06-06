@@ -189,6 +189,11 @@ async function initDatabase() {
     staffId TEXT
   )`);
 
+  await run(`CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  )`);
+
   // Seed default data
   const tablesCount = await get(`SELECT COUNT(*) as count FROM tables`);
   if (Number(tablesCount.count) === 0) {
@@ -990,6 +995,22 @@ async function getAppState() {
   };
 }
 
+async function saveSetting(key, value) {
+  const jsonStr = JSON.stringify(value);
+  await run('DELETE FROM settings WHERE key = ?', [key]);
+  await run('INSERT INTO settings (key, value) VALUES (?, ?)', [key, jsonStr]);
+}
+
+async function getSetting(key) {
+  try {
+    const row = await get('SELECT value FROM settings WHERE key = ?', [key]);
+    return row ? JSON.parse(row.value) : null;
+  } catch (e) {
+    console.error('Error reading setting:', key, e);
+    return null;
+  }
+}
+
 module.exports = {
   run,
   get,
@@ -998,5 +1019,7 @@ module.exports = {
   checkAndDeductStock,
   refillAllStocks,
   getAppState,
-  MENU_RECIPES
+  MENU_RECIPES,
+  saveSetting,
+  getSetting
 };
