@@ -1052,6 +1052,21 @@ button, input, select, textarea {
   background: rgba(255, 255, 255, 0.15);
 }
 
+.cart-btn-confirm-return {
+  background: linear-gradient(135deg, var(--accent-gold), #ebd9b4) !important;
+  color: #072215 !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  height: 44px;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(222, 193, 138, 0.2);
+}
+
+.cart-btn-confirm-return:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(222, 193, 138, 0.4);
+}
+
 .cart-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;

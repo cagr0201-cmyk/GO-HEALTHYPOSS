@@ -1011,6 +1011,22 @@ async function sendActiveOrderToKitchen() {
   }
 }
 
+async function confirmOrderAndReturn() {
+  const tableId = AppState.selectedTable ? AppState.selectedTable.id : 'quick';
+  const order = AppState.activeOrders[tableId];
+
+  if (order && order.items && order.items.length > 0) {
+    const unsentItems = order.items.filter(item => !item.isSentToKitchen);
+    if (unsentItems.length > 0) {
+      await sendActiveOrderToKitchen();
+      return;
+    }
+  }
+
+  // Eğer yeni mutfak siparişi yoksa doğrudan masa haritasına geri dön
+  switchScreen('tables');
+}
+
 function renderKitchenMonitor() {
   const container = document.getElementById('kitchen-cards-container');
   container.innerHTML = '';

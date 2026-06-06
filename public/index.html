@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Go Healthy POS</title>
   <!-- CSS Dosyası -->
-  <link rel="stylesheet" href="styles.css?v=9d08abe">
+  <link rel="stylesheet" href="styles.css?v=a5f8b31b">
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Chart.js CDN -->
@@ -205,8 +205,15 @@
               </div>
             </div>
 
+            <!-- Onayla & Geri Dön Butonu -->
+            <div style="padding: 12px 16px 0 16px; border-top: 1px solid var(--border-light); background: rgba(255, 255, 255, 0.02);">
+              <button class="cart-btn cart-btn-confirm-return" id="btn-confirm-return" onclick="confirmOrderAndReturn()">
+                <i data-lucide="check-circle"></i> Siparişi Onayla & Masalara Dön
+              </button>
+            </div>
+
             <!-- Sipariş / Ödeme Aksiyon Butonları -->
-            <div class="cart-actions">
+            <div class="cart-actions" style="border-top: none;">
               <button class="cart-btn cart-btn-kitchen" id="btn-send-kitchen" onclick="sendActiveOrderToKitchen()">
                 <i data-lucide="chef-hat"></i> Mutfak
               </button>
@@ -909,8 +916,8 @@
   <div id="print-receipt-section" style="display: none;"></div>
 
   <!-- UYGULAMA JS DOSYALARI -->
-  <script src="data.js?v=9d08abe"></script>
-  <script src="app.js?v=9d08abe"></script>
+  <script src="data.js?v=a5f8b31b"></script>
+  <script src="app.js?v=a5f8b31b"></script>
 
 </body>
 </html>
