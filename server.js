@@ -210,7 +210,7 @@ function buildPreBill(tx) {
   }
   text += BOLD_ON + 'TOPLAM: ' + (tx.total || 0).toFixed(2) + ' TL' + BOLD_OFF + LF;
   text += '================================' + LF;
-  text += CENTER + 'Odeme kasada yapilacaktir.' + LF + LF + LF;
+  text += CENTER + BOLD_ON + 'AFIYET OLSUN!' + BOLD_OFF + LF + LF + LF;
   text += CUT;
   return text;
 }

@@ -1513,8 +1513,8 @@ function localPrint(tx, type = 'receipt') {
           <span>${tx.total.toFixed(2)} ₺</span>
         </div>
         <div style="border-top:1px dashed #000; margin: 8px 0;"></div>
-        <div style="text-align:center; font-size:10px; margin-top: 8px; color:#555;">
-          Bu bir adisyondur. Ödeme kasada yapılacaktır.
+        <div style="text-align:center; font-size:12px; font-weight:bold; margin-top: 8px; color:#000;">
+          AFİYET OLSUN!
         </div>
       </div>
     `;
