@@ -123,9 +123,12 @@ socket.on('incoming_delivery_alert', (data) => {
 
 // Yazdırma işlemi başlatan cihazın kendi socket echo'sını yok sayması için bayrak
 let _printingLocally = false;
+const _recentlyPrintedTxIds = new Set();
 
 // Live remote print request listener — sadece başka cihazlar için basar
 socket.on('remote_print_request', (data) => {
+  // Bu cihaz zaten başlatan cihaz ise veya socket.id'si eşleşiyorsa yazdırmayı atla
+  if (data.senderSocketId && data.senderSocketId === socket.id) return;
   // Bu cihaz zaten localPrint ile bastıysa socket echo'sunu atla
   if (_printingLocally) return;
   if (AppState.activeStaff && (AppState.activeStaff.role === 'Kasiyer' || AppState.activeStaff.role === 'Müdür' || AppState.activeStaff.role === 'Patron')) {
@@ -1365,7 +1368,7 @@ async function printReceipt(tx, type = 'receipt') {
     const response = await fetch('/api/print', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tx, type })
+      body: JSON.stringify({ tx, type, senderSocketId: socket.id })
     });
     if (response.ok) {
       const resData = await response.json();
@@ -1398,11 +1401,23 @@ function localPrint(tx, type = 'receipt') {
   const printSection = document.getElementById('print-receipt-section');
   if (!printSection) return;
 
-  const dateStr = new Date(tx.timestamp).toLocaleString('tr-TR');
+  // Çift yazdırmayı engellemek için benzersiz iş numarası kontrolü
+  const printJobId = `${tx.id || tx.timestamp}-${type}`;
+  if (_recentlyPrintedTxIds.has(printJobId)) {
+    console.log('Ignored duplicate local print request:', printJobId);
+    return;
+  }
+  _recentlyPrintedTxIds.add(printJobId);
+  setTimeout(() => { _recentlyPrintedTxIds.delete(printJobId); }, 5000);
+
+  // Yazdırılacak ürünleri grupla (x1, x2 şeklinde birleştir)
+  const printTx = { ...tx, items: groupOrderItems(tx.items || []) };
+
+  const dateStr = new Date(printTx.timestamp).toLocaleString('tr-TR');
   
   if (type === 'kitchen') {
     let itemLines = '';
-    tx.items.forEach(item => {
+    printTx.items.forEach(item => {
       const optText = item.option ? ` (${item.option})` : '';
       const noteText = item.note ? `<div style="font-size: 11px; font-weight: bold; margin-left: 10px;">>> Not: ${item.note}</div>` : '';
       itemLines += `
@@ -1420,8 +1435,8 @@ function localPrint(tx, type = 'receipt') {
         <div style="text-align: center; font-size: 16px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 10px; color:#000;">
           MUTFAK SİPARİŞ FİŞİ
         </div>
-        <div style="font-size: 12px; margin-bottom: 4px; color:#000;"><strong>Masa/Bölüm:</strong> ${tx.tableName}</div>
-        <div style="font-size: 12px; margin-bottom: 4px; color:#000;"><strong>Garson:</strong> ${tx.waiterId ? tx.waiterId.toUpperCase() : 'BİLİNMİYOR'}</div>
+        <div style="font-size: 12px; margin-bottom: 4px; color:#000;"><strong>Masa/Bölüm:</strong> ${printTx.tableName}</div>
+        <div style="font-size: 12px; margin-bottom: 4px; color:#000;"><strong>Garson:</strong> ${printTx.waiterId ? printTx.waiterId.toUpperCase() : 'BİLİNMİYOR'}</div>
         <div style="font-size: 10px; margin-bottom: 10px; color:#000;"><strong>Tarih:</strong> ${dateStr}</div>
         <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 8px 0; margin-bottom: 10px;">
           ${itemLines}
@@ -1568,8 +1583,9 @@ function generateReceiptHTML(tx) {
   const receiptEl = document.getElementById('receipt-paper-content');
   const dateStr = new Date(tx.timestamp).toLocaleString('tr-TR');
   
+  const printTx = { ...tx, items: groupOrderItems(tx.items || []) };
   let itemLines = '';
-  tx.items.forEach(item => {
+  printTx.items.forEach(item => {
     const optText = item.option ? ` (${item.option})` : '';
     itemLines += `
       <div class="receipt-item-line">

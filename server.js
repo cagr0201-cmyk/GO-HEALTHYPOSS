@@ -62,6 +62,19 @@ function sendToPrinter(ip, port = 9100, data) {
   });
 }
 
+function groupItems(items) {
+  const map = new Map();
+  (items || []).forEach(item => {
+    const key = `${item.id}-${item.option || ''}-${item.note || ''}`;
+    if (map.has(key)) {
+      map.get(key).quantity += item.quantity || 1;
+    } else {
+      map.set(key, { ...item, quantity: item.quantity || 1 });
+    }
+  });
+  return Array.from(map.values());
+}
+
 // ESC/POS: Build a simple kitchen ticket text
 function buildKitchenTicket(tx) {
   const ESC = '\x1b';
@@ -80,7 +93,8 @@ function buildKitchenTicket(tx) {
   text += 'Garson: ' + (tx.waiterId ? tx.waiterId.toUpperCase() : '') + LF;
   text += 'Tarih: ' + date + LF;
   text += '--------------------------------' + LF;
-  (tx.items || []).forEach(item => {
+  const groupedItems = groupItems(tx.items || []);
+  groupedItems.forEach(item => {
     const opt = item.option ? ' (' + item.option + ')' : '';
     const note = item.note ? '\n  >> Not: ' + item.note : '';
     text += BOLD_ON + item.quantity + 'x ' + item.name + opt + BOLD_OFF + note + LF;
@@ -113,7 +127,8 @@ function buildKasaReceipt(tx) {
   text += 'Fiş No: ' + (tx.id || '') + LF;
   text += 'Tarih: ' + date + LF;
   text += '--------------------------------' + LF;
-  (tx.items || []).forEach(item => {
+  const groupedItems = groupItems(tx.items || []);
+  groupedItems.forEach(item => {
     const opt = item.option ? ' (' + item.option + ')' : '';
     const total = ((item.price || 0) * (item.quantity || 1)).toFixed(2);
     text += item.quantity + 'x ' + item.name + opt + '  ' + total + ' TL' + LF;
@@ -149,7 +164,8 @@ function buildDrinkTicket(tx, drinkItems) {
   text += 'Garson: ' + (tx.waiterId ? tx.waiterId.toUpperCase() : '') + LF;
   text += 'Tarih: ' + date + LF;
   text += '--------------------------------' + LF;
-  drinkItems.forEach(item => {
+  const groupedItems = groupItems(drinkItems || []);
+  groupedItems.forEach(item => {
     const opt = item.option ? ' (' + item.option + ')' : '';
     text += BOLD_ON + item.quantity + 'x ' + item.name + opt + BOLD_OFF + LF;
   });
@@ -181,7 +197,8 @@ function buildPreBill(tx) {
   text += 'Personel: ' + (tx.waiterId ? tx.waiterId.toUpperCase() : '') + LF;
   text += 'Tarih: ' + date + LF;
   text += '--------------------------------' + LF;
-  (tx.items || []).forEach(item => {
+  const groupedItems = groupItems(tx.items || []);
+  groupedItems.forEach(item => {
     const opt = item.option ? ' (' + item.option + ')' : '';
     const total = ((item.price || 0) * (item.quantity || 1)).toFixed(2);
     text += item.quantity + 'x ' + item.name + opt + '  ' + total + ' TL' + LF;
@@ -608,7 +625,7 @@ app.post('/api/delivery/simulate', (req, res) => {
 
 // Smart print endpoint — routes to correct IP printer or falls back to socket broadcast
 app.post('/api/print', async (req, res) => {
-  const { tx, type } = req.body;
+  const { tx, type, senderSocketId } = req.body;
 
   if (printerSettings.enabled && (printerSettings.kasaIp || printerSettings.mutfakIp)) {
     try {
@@ -661,7 +678,7 @@ app.post('/api/print', async (req, res) => {
   }
 
   // Fallback: broadcast to all connected browser clients via Socket.IO
-  io.emit('remote_print_request', { tx, type });
+  io.emit('remote_print_request', { tx, type, senderSocketId });
   res.json({ success: true, printedDirectly: false });
 });
 
