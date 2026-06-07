@@ -14,7 +14,7 @@
   <!-- Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
   <!-- Local Categories Data -->
-  <script src="/data.js?v=d0718e1b_v7"></script>
+  <script src="/data.js?v=d0718e1b_v8"></script>
   <style>
     :root {
       --bg-main: #072215;                        /* Very deep forest green */
@@ -879,6 +879,154 @@
       color: #fff !important;
       border: 1px solid rgba(255,255,255,0.1);
     }
+
+    /* ORDER TRACKER FLOATING CARD */
+    .order-tracker-floating {
+      position: fixed;
+      bottom: 90px;
+      left: 16px;
+      right: 16px;
+      background: rgba(13, 54, 34, 0.95);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--accent-gold);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      padding: 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: slideUpTracker 0.5s ease;
+    }
+
+    @keyframes slideUpTracker {
+      from { transform: translateY(150px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .tracker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tracker-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tracker-header-left h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent-gold);
+      font-family: var(--font-outfit);
+      margin: 0;
+    }
+
+    .tracker-header-left p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin: 2px 0 0 0;
+    }
+
+    .pulse-icon {
+      width: 36px;
+      height: 36px;
+      background: rgba(222, 193, 138, 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-gold);
+      padding: 8px;
+      animation: pulseGold 2s infinite;
+    }
+
+    @keyframes pulseGold {
+      0% { box-shadow: 0 0 0 0 rgba(222, 193, 138, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(222, 193, 138, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(222, 193, 138, 0); }
+    }
+
+    .tracker-toggle-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s;
+    }
+
+    .tracker-body {
+      margin-top: 16px;
+      border-top: 1px solid rgba(222, 193, 138, 0.1);
+      padding-top: 16px;
+      transition: all 0.3s;
+    }
+
+    .tracker-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .tracker-step {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      opacity: 0.3;
+      transition: opacity 0.3s;
+    }
+
+    .tracker-step.active {
+      opacity: 1;
+    }
+
+    .tracker-step.completed {
+      opacity: 0.85;
+    }
+
+    .step-icon-wrapper {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+
+    .tracker-step.active .step-icon-wrapper {
+      background: var(--accent-gold);
+      border-color: var(--accent-gold);
+      color: var(--bg-main);
+      box-shadow: 0 0 10px rgba(222, 193, 138, 0.5);
+    }
+
+    .tracker-step.completed .step-icon-wrapper {
+      background: var(--accent-cyan);
+      border-color: var(--accent-cyan);
+      color: white;
+    }
+
+    .step-info h5 {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text-main);
+    }
+
+    .step-info p {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin: 2px 0 0 0;
+    }
   </style>
 </head>
 <body>
@@ -1036,6 +1184,47 @@
     </div>
   </div>
 
+  <!-- SİPARİŞ TAKİP PANELİ (FLOATING TRACKER) -->
+  <div id="order-tracker" class="order-tracker-floating" style="display: none;">
+    <div class="tracker-header">
+      <div class="tracker-header-left">
+        <i data-lucide="cooking-pot" class="pulse-icon"></i>
+        <div>
+          <h4 id="tracker-status-text">Siparişiniz İletildi</h4>
+          <p id="tracker-sub-text">Mutfak onayı bekleniyor...</p>
+        </div>
+      </div>
+      <button class="tracker-toggle-btn" onclick="toggleTrackerDetails()">
+        <i data-lucide="chevron-up" id="tracker-chevron"></i>
+      </button>
+    </div>
+    <div class="tracker-body" id="tracker-body" style="display: none;">
+      <div class="tracker-steps">
+        <div class="tracker-step" id="step-sent">
+          <div class="step-icon-wrapper"><i data-lucide="send"></i></div>
+          <div class="step-info">
+            <h5>Sipariş İletildi</h5>
+            <p>Mutfak onayı bekleniyor</p>
+          </div>
+        </div>
+        <div class="tracker-step" id="step-cooking">
+          <div class="step-icon-wrapper"><i data-lucide="flame"></i></div>
+          <div class="step-info">
+            <h5>Hazırlanıyor</h5>
+            <p>Şeflerimiz hazırlıyor</p>
+          </div>
+        </div>
+        <div class="tracker-step" id="step-ready">
+          <div class="step-icon-wrapper"><i data-lucide="utensils"></i></div>
+          <div class="step-info">
+            <h5>Servis Ediliyor</h5>
+            <p>Garsonumuz yola çıktı</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // System State Variables
     let menuItems = [];
@@ -1054,6 +1243,7 @@
       stockStatus = data.stockStatus;
       menuItems = data.menuItems;
       renderMenu();
+      updateOrderTracker(data);
     });
 
     // Notify Customer when KDS updates their ticket
@@ -1062,10 +1252,94 @@
       if (activeTableId) {
         const activeTable = TABLES.find(t => t.id === activeTableId);
         if (activeTable && data.tableName === activeTable.name) {
-          showToast('Harika! Siparişiniz hazırlandı, garsonumuz servis ediyor.', 'success');
+          showToast('Harika! Siparişiniz hazırlandı, garsonumuz servis ediyor. 🍽️', 'success');
         }
       }
     });
+
+    // Global tracking variable
+    window.lastOrderStatus = null;
+
+    function updateOrderTracker(data) {
+      if (!activeTableId) return;
+
+      const tracker = document.getElementById('order-tracker');
+      const statusText = document.getElementById('tracker-status-text');
+      const subText = document.getElementById('tracker-sub-text');
+      
+      const stepSent = document.getElementById('step-sent');
+      const stepCooking = document.getElementById('step-cooking');
+      const stepReady = document.getElementById('step-ready');
+
+      // Check if this table has an active order
+      const activeOrder = data.activeOrders && data.activeOrders[activeTableId];
+      if (!activeOrder || !activeOrder.items || activeOrder.items.length === 0) {
+        tracker.style.display = 'none';
+        window.lastOrderStatus = null;
+        return;
+      }
+
+      // Check kitchen tickets for this table
+      const tickets = data.kitchenOrders ? data.kitchenOrders.filter(ko => ko.tableId === activeTableId) : [];
+      
+      let status = 'sent'; // default: order submitted but not accepted by kitchen yet
+      
+      if (tickets.length > 0) {
+        const hasCooking = tickets.some(t => t.status === 'cooking');
+        if (hasCooking) {
+          status = 'cooking';
+        } else {
+          status = 'ready';
+        }
+      }
+
+      tracker.style.display = 'block';
+
+      // Update active states
+      stepSent.classList.remove('active', 'completed');
+      stepCooking.classList.remove('active', 'completed');
+      stepReady.classList.remove('active', 'completed');
+
+      if (status === 'sent') {
+        statusText.textContent = 'Siparişiniz İletildi';
+        subText.textContent = 'Mutfak onayı bekleniyor...';
+        stepSent.classList.add('active');
+      } else if (status === 'cooking') {
+        statusText.textContent = 'Siparişiniz Onaylandı';
+        subText.textContent = 'Şeflerimiz siparişinizi hazırlıyor...';
+        stepSent.classList.add('completed');
+        stepCooking.classList.add('active');
+      } else if (status === 'ready') {
+        statusText.textContent = 'Siparişiniz Hazır!';
+        subText.textContent = 'Garsonumuz servis ediyor, afiyet olsun!';
+        stepSent.classList.add('completed');
+        stepCooking.classList.add('completed');
+        stepReady.classList.add('active');
+      }
+
+      // Trigger toasts on transitions
+      if (window.lastOrderStatus !== status) {
+        if (window.lastOrderStatus === 'sent' && status === 'cooking') {
+          showToast('Siparişiniz onaylandı, mutfakta hazırlanmaya başladı! 🍳', 'success');
+        } else if (window.lastOrderStatus === 'cooking' && status === 'ready') {
+          showToast('Harika! Siparişiniz hazırlandı, garsonumuz servis ediyor. 🍽️', 'success');
+        }
+        window.lastOrderStatus = status;
+      }
+      lucide.createIcons();
+    }
+
+    function toggleTrackerDetails() {
+      const body = document.getElementById('tracker-body');
+      const chevron = document.getElementById('tracker-chevron');
+      if (body.style.display === 'none') {
+        body.style.display = 'block';
+        chevron.style.transform = 'rotate(180deg)';
+      } else {
+        body.style.display = 'none';
+        chevron.style.transform = 'rotate(0deg)';
+      }
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       detectTableFromUrl();
@@ -1196,6 +1470,7 @@
 
         renderCategories();
         renderMenu();
+        updateOrderTracker(data);
       } catch (err) {
         console.error('Menu load error:', err);
         showToast('Menü listesi yüklenemedi. Sayfayı yenileyin!', 'error');
