@@ -785,27 +785,49 @@ app.delete('/api/closings/:id', async (req, res) => {
 
 app.patch('/api/closings/:id', async (req, res) => {
   const { id } = req.params;
-  const { countedCash, countedCard, countedMealcard, countedOther, notes } = req.body;
+  const {
+    startingCash,
+    expectedCash, countedCash,
+    expectedCard, countedCard,
+    expectedMealcard, countedMealcard,
+    expectedOther, countedOther,
+    totalRevenue, totalExpenses,
+    notes
+  } = req.body;
   try {
-    const existing = await db.get(`SELECT id FROM daily_closings WHERE id = ?`, [id]);
+    const existing = await db.get(`SELECT * FROM daily_closings WHERE id = ?`, [id]);
     if (!existing) {
       return res.status(404).json({ error: 'Gün sonu kaydı bulunamadı.' });
     }
     
     await db.run(
       `UPDATE daily_closings SET
+         startingCash = ?,
+         expectedCash = ?,
          countedCash = ?,
+         expectedCard = ?,
          countedCard = ?,
+         expectedMealcard = ?,
          countedMealcard = ?,
+         expectedOther = ?,
          countedOther = ?,
+         totalRevenue = ?,
+         totalExpenses = ?,
          notes = ?
        WHERE id = ?`,
       [
-        Number(countedCash),
-        Number(countedCard),
-        Number(countedMealcard),
-        Number(countedOther),
-        notes || '',
+        startingCash !== undefined ? Number(startingCash) : existing.startingCash,
+        expectedCash !== undefined ? Number(expectedCash) : existing.expectedCash,
+        countedCash !== undefined ? Number(countedCash) : existing.countedCash,
+        expectedCard !== undefined ? Number(expectedCard) : existing.expectedCard,
+        countedCard !== undefined ? Number(countedCard) : existing.countedCard,
+        expectedMealcard !== undefined ? Number(expectedMealcard) : existing.expectedMealcard,
+        countedMealcard !== undefined ? Number(countedMealcard) : existing.countedMealcard,
+        expectedOther !== undefined ? Number(expectedOther) : existing.expectedOther,
+        countedOther !== undefined ? Number(countedOther) : existing.countedOther,
+        totalRevenue !== undefined ? Number(totalRevenue) : existing.totalRevenue,
+        totalExpenses !== undefined ? Number(totalExpenses) : existing.totalExpenses,
+        notes !== undefined ? notes : existing.notes,
         id
       ]
     );
