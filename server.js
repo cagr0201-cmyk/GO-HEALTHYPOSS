@@ -767,6 +767,22 @@ app.post('/api/closings', async (req, res) => {
   }
 });
 
+app.delete('/api/closings/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const existing = await db.get(`SELECT id FROM daily_closings WHERE id = ?`, [id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Gün sonu kaydı bulunamadı.' });
+    }
+    await db.run(`DELETE FROM daily_closings WHERE id = ?`, [id]);
+    const state = await db.getAppState();
+    io.emit('sync_state', state);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Expense Management APIs
 app.get('/api/expenses', async (req, res) => {
   try {

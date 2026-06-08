@@ -120,6 +120,30 @@ async function main() {
     }
     console.log("✓ Closing data successfully verified in database.");
 
+    // 6. DELETE /api/closings/:id
+    console.log("\n--- Testing DELETE /api/closings/:id ---");
+    const delRes = await fetch(`${BASE_URL}/api/closings/Z-TEST-9999`, {
+      method: 'DELETE'
+    });
+    if (delRes.status !== 200) {
+      throw new Error(`DELETE /api/closings returned status ${delRes.status}`);
+    }
+    const delResult = await delRes.json();
+    console.log("DELETE Result:", delResult);
+    if (!delResult.success) {
+      throw new Error("Expected delete result to indicate success");
+    }
+    console.log("✓ Closing deleted successfully.");
+
+    // 7. GET /api/closings (should be empty again)
+    console.log("\n--- Testing GET /api/closings (After Delete) ---");
+    const getRes3 = await fetch(`${BASE_URL}/api/closings`);
+    const closings3 = await getRes3.json();
+    if (!Array.isArray(closings3) || closings3.length !== 0) {
+      throw new Error("Expected closings list to be empty after deletion!");
+    }
+    console.log("✓ Verified database is empty after Z-report deletion.");
+
   } catch (err) {
     console.error("❌ Closings API test failed with error:", err);
     testPassed = false;

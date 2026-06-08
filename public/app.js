@@ -4357,14 +4357,41 @@ function renderClosingsList() {
       </td>
       <td><span class="${diffClass}">${diffText}</span></td>
       <td>
-        <button onclick="printZReportDirectly('${c.id}')" style="background: rgba(222,193,138,0.15); border: 1px solid var(--accent-gold); color: var(--accent-gold); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;">
-          <i data-lucide="printer" style="width: 12px; height: 12px;"></i> Yazdır
-        </button>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button onclick="printZReportDirectly('${c.id}')" style="background: rgba(222,193,138,0.15); border: 1px solid var(--accent-gold); color: var(--accent-gold); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+            <i data-lucide="printer" style="width: 12px; height: 12px;"></i> Yazdır
+          </button>
+          <button onclick="deleteZReport('${c.id}')" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--status-busy); color: var(--status-busy); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
+            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Sil
+          </button>
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
   });
   lucide.createIcons();
+}
+
+async function deleteZReport(closingId) {
+  if (!confirm('Bu gün sonu raporunu silmek istediğinizden emin misiniz?\n\nSilme işleminden sonra, ciro ve kasa beklentileri bu rapordan önceki döneme geri dönecektir.')) {
+    return;
+  }
+  
+  try {
+    const res = await fetch(`/api/closings/${encodeURIComponent(closingId)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Silme işlemi başarısız.');
+    
+    showToast('✓ Gün sonu raporu başarıyla silindi ve beklentiler geri döndü.', 'success');
+    await fetchClosingsFromServer();
+    await fetchSalesHistoryFromServer();
+    renderClosingsTab();
+  } catch (err) {
+    console.error('Error deleting Z-report:', err);
+    showToast(`Hata: ${err.message}`, 'error');
+  }
 }
 
 async function printZReportDirectly(closingId) {
