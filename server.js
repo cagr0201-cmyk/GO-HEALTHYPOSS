@@ -545,6 +545,102 @@ app.get('/api/reports', async (req, res) => {
   }
 });
 
+// Update payment method for a specific sale (correction)
+app.patch('/api/sales/:id/payment', async (req, res) => {
+  const { id } = req.params;
+  const { paymentMethod } = req.body;
+  const validMethods = ['CASH', 'CARD', 'MEALCARD', 'OTHER'];
+  if (!validMethods.includes(paymentMethod)) {
+    return res.status(400).json({ error: 'Geçersiz ödeme yöntemi. Kabul edilen: CASH, CARD, MEALCARD, OTHER' });
+  }
+  try {
+    const existing = await db.get(`SELECT id FROM sales_history WHERE id = ?`, [id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Satış kaydı bulunamadı.' });
+    }
+    await db.run(`UPDATE sales_history SET paymentMethod = ? WHERE id = ?`, [paymentMethod, id]);
+    const state = await db.getAppState();
+    io.emit('sync_state', state);
+    res.json({ success: true, id, paymentMethod });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a specific sale (correction of payment method, discount, total)
+app.patch('/api/sales/:id', async (req, res) => {
+  const { id } = req.params;
+  const { paymentMethod, discount, total } = req.body;
+  try {
+    const existing = await db.get(`SELECT * FROM sales_history WHERE id = ?`, [id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Satış kaydı bulunamadı.' });
+    }
+    
+    const updates = [];
+    const params = [];
+    
+    if (paymentMethod !== undefined) {
+      const validMethods = ['CASH', 'CARD', 'MEALCARD', 'OTHER'];
+      if (!validMethods.includes(paymentMethod)) {
+        return res.status(400).json({ error: 'Geçersiz ödeme yöntemi.' });
+      }
+      updates.push('paymentMethod = ?');
+      params.push(paymentMethod);
+    }
+    
+    if (discount !== undefined) {
+      updates.push('discount = ?');
+      params.push(Number(discount));
+    }
+    
+    if (total !== undefined) {
+      updates.push('total = ?');
+      params.push(Number(total));
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Güncellenecek alan gönderilmedi.' });
+    }
+    
+    params.push(id);
+    await db.run(`UPDATE sales_history SET ${updates.join(', ')} WHERE id = ?`, params);
+    
+    const state = await db.getAppState();
+    io.emit('sync_state', state);
+    res.json({ success: true, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete (cancel/void) a specific sale
+app.delete('/api/sales/:id', async (req, res) => {
+  const { id } = req.params;
+  const { returnToStock } = req.query;
+  try {
+    const sale = await db.get(`SELECT items FROM sales_history WHERE id = ?`, [id]);
+    if (!sale) {
+      return res.status(404).json({ error: 'Satış kaydı bulunamadı.' });
+    }
+    
+    if (returnToStock === 'true') {
+      const items = JSON.parse(sale.items);
+      for (const item of items) {
+        await db.checkAndDeductStock(item.id, -item.quantity);
+      }
+    }
+    
+    await db.run(`DELETE FROM sales_history WHERE id = ?`, [id]);
+    const state = await db.getAppState();
+    io.emit('sync_state', state);
+    res.json({ success: true, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 // Staff key clock-in shift attendance
 app.post('/api/staff/shift', async (req, res) => {
   const { pin } = req.body;

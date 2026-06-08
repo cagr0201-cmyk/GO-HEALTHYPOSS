@@ -1,0 +1,548 @@
+[
+  {
+    "id": "G7Dybmqujf1ahEEDJask",
+    "name": "KAHVALTILAR",
+    "order": 0,
+    "icon": "salad",
+    "products": [
+      {
+        "id": "BBNpPyjOSxXmTdjPYtSK",
+        "name": "Magic Omlet",
+        "price": 330,
+        "description": "3 yumurtalı omlet, 2 adet mini pankek, 1 adet köz biber, yarım ekşi mayalı ekmek krem peynir üzeri kızarmış çeri domates, süzme yoğurtlu granola karışımı, Zeytin, misket peynir, çilek reçeli.",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777916689418-magic%20omlet%20.jpeg?alt=media&token=ee599f42-be49-4be7-9a11-70cd7de702c5",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "YIKTlEYjFA69uuwkWnx3",
+        "name": "Avokado Ekmek",
+        "price": 294,
+        "description": "Ekşi Mayalı Tam Buğday Ekmek Üzeri 2 adet Yumurta, Hindi füme, Yarım Avokado, Endivyen Marul, Çeri Domates.",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777916746895-avakado%20ekmek%20yeni.jpg?alt=media&token=2a8a324f-d2dc-4571-a754-c4da7784e0dc",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "uZ4elHg2rCzIBIzwxlRL",
+        "name": "Go Healthy Kahvaltı",
+        "price": 396,
+        "description": "2 adet Yumurta, 2 adet Hellim Peyniri, Yarım Avokado, Frankfurter sosis, Ekşi mayalı tam buğday ekmek, Fıstık Ezmesi, Çilek Reçeli, Zeytin.",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777916803218-go%20healthy%20kase%20yeni.jpg?alt=media&token=2b144ed2-9b89-47b0-bebd-ed9e930462cf",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "yTrDQzr0opQtpzcNBWgq",
+        "name": "Yumurtalı Wrap",
+        "price": 295,
+        "description": "Krem Peynirli Tam Buğday Lavaş İçi 2 Adet Yumurta, Köz Kapya Biber, Endivyen Marul, Çeri Domates, yarım avakado.",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777916845544-yumurtal%C4%B1%20wrap%20yeni.jpeg?alt=media&token=9393e926-64c8-42ca-bded-112d6e7fef88",
+        "popular": false,
+        "status": "active",
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "IDG2uULBtLhcIicltKSI",
+    "name": "HEALTHY BRUSCHETTA",
+    "order": 1,
+    "icon": "salad",
+    "products": [
+      {
+        "id": "1iqk0bP2N2ofFZ4iYTJu",
+        "name": "Sosisli Bruschetta",
+        "price": 290,
+        "description": "Ekşi Mayalı Tam Buğday Ekmek Üzeri 3 adet Yumurta, Frankfurter sosis.\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777917027605-SOS%C4%B0SL%C4%B0%20BRUSEHATTA.jpg?alt=media&token=d8506884-db5a-460c-818e-e0a513077cc9",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "7Aew6l2gSrUv0iMPN7Wl",
+        "name": "Tatlı Bruschetta",
+        "price": 269,
+        "description": "Ekşi Mayalı Tam Buğday Ekmek Üzeri Şekersiz Fıstık ezmesi, yaban mersini, muz .\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777917367876-SWEET%20BRUSEHATTA.jpg?alt=media&token=50f9e50f-939d-422e-8c4d-7f06dc628cd5",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "CUrDkzCruQbQLpreHgcc",
+        "name": "Mantarlı Bruschetta",
+        "price": 269,
+        "description": "Ekşi Mayalı Tam Buğday Ekmek Üzeri 2 adet Yumurta, sotelenmiş mantar ve soğan, krem peynir.\n",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "HzfdmS0BdMoEGtRX6IDg",
+    "name": "SALATALAR",
+    "order": 2,
+    "icon": "salad",
+    "products": [
+      {
+        "id": "Oca0s07CwJRPhc6SNfpw",
+        "name": "Tavuklu Salata",
+        "price": 295,
+        "description": "Tavuk Izgara ( 150 - 170 )gr, Yeşil ve Renkli Kıvırcık Marul, Salatalık, Çeri Domates, Mor Soğan, Haşlanmış Nohut.\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777916887700-salatayeni.jpeg?alt=media&token=fb608b0e-99a6-4ba4-8af1-f9c9c4e1cd44",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "WWynmvX9srN7d4WCrlmv",
+        "name": "Ton balıklı Salata",
+        "price": 295,
+        "description": "Ton Balığı, Yeşil ve Renkli Kıvırcık Marul, Salatalık, Çeri Domates, Mor Soğan.\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777916918682-tuna%20salada%20.jpeg?alt=media&token=437b4f60-eaeb-4a29-95a0-7ef447fa9cae",
+        "popular": false,
+        "status": "active",
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "L3SlF5TXqvlpC0tD2oVI",
+    "name": "MAKARNALAR",
+    "order": 3,
+    "icon": "salad",
+    "products": [
+      {
+        "id": "73DVxWyZWnlTp3ML8kTs",
+        "name": "Domates Soslu Makarna",
+        "price": 295,
+        "description": "Tavuk Izgara ( 150-170 )gr, Kepekli Tam Buğday Makarna, domates sos,çeri domates ve fesleğen.\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777917864194-domatesyeni.jpeg?alt=media&token=ac48946a-8502-4790-95b2-899a9bc5ff73",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "8QiO0bMpllj5IGfpVuwT",
+        "name": "Pesto Makarna",
+        "price": 295,
+        "description": "Tavuk Izgara ( 150-170 )gr, Kepekli Tam Buğday Makarna, Mantar, Diyet Krema. Kalori: Karbonhidrat:  Protein: \n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777917916849-yeni%20makarna.png?alt=media&token=87cd7ca3-293f-4f33-b374-3d3d99d48410",
+        "popular": false,
+        "status": "active",
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "J9V643KQdRIYsJiOHmLX",
+    "name": "KASELER",
+    "order": 4,
+    "icon": "salad",
+    "products": [
+      {
+        "id": "0RseBd5vNhLSDv7vTuOI",
+        "name": "Tavuk Kase",
+        "price": 365,
+        "description": "Tavuk Izgara ( 150-170)gr, Basmati Pirinç, 1 adet havuç, sotelenmiş mantar, Mor lahana, Brokoli. Kalori: Karbonhidrat: Protein:\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777917519664-TAVUK%20KAE%20YEN%C4%B0%20.jpeg?alt=media&token=cb62b6c5-b3ba-4ee5-a01b-9fda725275a6",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "5pO3wYsLUAPOvSOfL0gy",
+        "name": "Köfte kase",
+        "price": 465,
+        "description": "4 Adet köfte ( 140-150)gr, Meksika Fasulyeli Bulgur Pilavı, Brokoli, Közlenmiş Patlıcan Salatası, Coleslaw, Mor Lahana, Humus. Kalori: Karbonhidrat: Protein:\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777917559911-k%C3%B6fte%20yendi.jpg?alt=media&token=050390fa-7ef5-4817-be16-8ef71fcb677b",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "FL0yb68vavBs8mfwXb4V",
+        "name": "Kinoalı Kısır Kase",
+        "price": 345,
+        "description": "Bulgur, Tavuk Izgara ( 150-170)gr, Kinoa, Domates, Salatalık, Kornişon, Marul.\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777917609912-k%C4%B1s%C4%B1r%20yeni.jpeg?alt=media&token=1f85bcc9-f310-4c37-9a56-cf1cb8695e96",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "VfIhAKQkZELrvraGlNNu",
+        "name": "Magic Kase",
+        "price": 379,
+        "description": "Nohutlu Kuş Üzümlü Basmati Pirinç, Yarım Izgara Avokado, Izgara Kabak, Edamame, Brokoli, Kırmızı Pancar, Havuç, Yeşil Elma. Kalori: Karbonhidrat: Protein:\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777917767324-MAG%C4%B0C%2C%2C.png?alt=media&token=fdcdf3cc-a248-4c24-b22a-743d809251c0",
+        "popular": false,
+        "status": "active",
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "kDkKyJRAjMcPSr69pEDk",
+    "name": "FAST&HEALTHY",
+    "order": 5,
+    "icon": "salad",
+    "products": [
+      {
+        "id": "93qTUyQ2Z5J17k2bTvWI",
+        "name": "Tavuk Wrap",
+        "price": 348,
+        "description": "Tam Buğday Lavaş İçerisi Tavuk ( 120 - 150)gr, Turşu salatası, Iceberg, Chedar Peyniri, Patates Cips. Kalori: Karbonhidrat:  Protein: \n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777917961074-tavuk%20wrap%20yeni%20.jpeg?alt=media&token=afc6378a-26ad-4356-bffa-18d8b275905a",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "UWcoYF9bdAm8O8uq9hh5",
+        "name": "Et Burger",
+        "price": 405,
+        "description": "Dana Burger Köfte ( 120)gr, Özel Kepekli Tam Buğday Burger Ekmeği, Marul, Köz patlıcan sos, Cheddar Peyniri, Patates Cips, Kornişon. Kalori: Karbonhidrat:  Protein: \n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777917994916-burgeryeni.jpeg?alt=media&token=4eadc958-556e-4cf2-8345-03c7e30a06c4",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "llqDo1yr6wNk2tXTejXO",
+        "name": "Pankek",
+        "price": 285,
+        "description": "Pankek, Çilek, Muz, Bal, Fıstık Ezmesi. Kalori: Karbonhidrat:  Protein: \n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777918030588-pankekyeni.jpeg?alt=media&token=6eb8b11d-3a1a-44ff-8dbb-35b28fb143b1",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "nZReK8PvQgzFTPKIDCCO",
+        "name": "Porridge",
+        "price": 198,
+        "description": "Yulaf Ezmesi ( 60 - 80 )gr, Süt, Muz, Çilek, Kinoa. Kalori: Karbonhidrat:  Protein: \n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777918060294-porridge%20yeni%20.jpeg?alt=media&token=e1cbb4ae-9c49-488e-9a24-a3b6508f6846",
+        "popular": false,
+        "status": "active",
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "qKvNEcG5aQN2nx9ygarX",
+    "name": "APERATİFLER",
+    "order": 6,
+    "icon": "salad",
+    "products": [
+      {
+        "id": "uGb18tx00PIGkVMt6eZo",
+        "name": "Aperatif-1",
+        "price": 205,
+        "description": "Süzme Yoğurt, roka, semiz otu, Üstüne Sotelenmiş baharatlı nohut. \n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777996894541-SSSSU.png?alt=media&token=6d77b18b-624b-4ca0-bc5d-6cfd997eaa0a",
+        "popular": false,
+        "status": "active",
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "yKsnp6EFSg45UWDaz9LK",
+    "name": "SOFT İÇECEKLER",
+    "order": 7,
+    "icon": "salad",
+    "products": [
+      {
+        "id": "DEIVaMUvrEAFYz5ta0El",
+        "name": "COLA ZERO",
+        "price": 75,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "IilLw0CZ9s7TdnHJbx1h",
+        "name": "AYRAN",
+        "price": 30,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "LLYYKBP5PVYAY6uYOVbk",
+        "name": "SU",
+        "price": 25,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "avD2rzdrtg5PzujM5hel",
+        "name": "SODA",
+        "price": 45,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "klLjZaoLZ5qrUtWyaLgi",
+        "name": "Churchill",
+        "price": 75,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "qrQmFX0ue7YpR9206WDV",
+    "name": "DETOKS&SHOTLAR",
+    "order": 8,
+    "icon": "salad",
+    "products": [
+      {
+        "id": "7JDC4wUgKmKZB1fSPXxT",
+        "name": "Kırmızı Meyve Suyu",
+        "price": 160,
+        "description": "Pancar, Kırmızı Elma, zencefil, Limon.\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777996267607-pancardetokss.jpeg?alt=media&token=b13233be-a69c-4d93-8841-baa9c566fddb",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "CoNEsnAcRQWyOnonYhrI",
+        "name": "Turuncu Meyve Suyu",
+        "price": 160,
+        "description": "portakal, limon, havuç,zencefil,zerdaçal.\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777996295519-turuncudetoks.jpeg?alt=media&token=b8cc2df3-20f7-40c4-bbbe-22e949db3093",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "UNzWyhfZh6f84LH6Sts4",
+        "name": "Yeşil Meyve Suyu",
+        "price": 160,
+        "description": "Yeşil elma, salatalık, roka,maydanoz, limon.\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777996365989-ye%C5%9Fildetokss.jpeg?alt=media&token=fdd41a8e-7b78-44ef-9b08-1942aaa74f6d",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "cjNOQtqVZhxdRBxhnAPM",
+        "name": "portakal shot",
+        "price": 160,
+        "description": "portakal,limon,karabiber,bal,zencefil.\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777996399657-portaklashot.jpeg?alt=media&token=3089e4c6-ce2e-41da-a742-fc3cad20a713",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "oyyU9Gt66mlTCXJ3N1UF",
+        "name": "pancar shot",
+        "price": 80,
+        "description": "pancar,zencefil,limon,bal,zerdeçal.\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777996435869-shotk%C4%B1rm%C4%B1z%C4%B1.jpeg?alt=media&token=fb843cd4-3b72-41c0-8287-2956aceef6cd",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "xdkkcTfJ2zIthzsWpvR5",
+        "name": "zencefil shot",
+        "price": 80,
+        "description": "limon,zencefil,bal.\n",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777996492537-gingershot.jpeg?alt=media&token=3a4f02cd-d61f-43c1-b612-ec058451821a",
+        "popular": false,
+        "status": "active",
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "tETcPjbPcvEkInJMU7yL",
+    "name": "TAZE SIKIM ",
+    "order": 9,
+    "icon": "salad",
+    "products": [
+      {
+        "id": "HUB2sOB9POktBQqASRmf",
+        "name": "PANCAR SUYU",
+        "price": 80,
+        "description": "",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777996547974-pancardetokss.jpeg?alt=media&token=774f6fe6-af4b-479e-a2f3-d20ab92d960c",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "JmvTDD6UCQ47AZM05Vfl",
+        "name": "ELMA SUYU",
+        "price": 80,
+        "description": "",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777996557054-elma%20suyu.jpeg?alt=media&token=0fe031b4-ce5a-4ece-8f8f-d47695e0240e",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "Wypr7nZ7feW4ePn1l2MY",
+        "name": "PORTAKAL SUYU",
+        "price": 80,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "fOXzr4gXO93EvRysD4Jg",
+        "name": "HAVUÇ SUYU",
+        "price": 80,
+        "description": "",
+        "image": "https://firebasestorage.googleapis.com/v0/b/suitable-live.appspot.com/o/resized%2F1777996578190-turuncudetoks.jpeg?alt=media&token=c52b3f4d-171b-442f-9d22-03d3e819808b",
+        "popular": false,
+        "status": "active",
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "HKdwjIy3KG9sKvHfLmzL",
+    "name": "SICAK İÇECEKLER",
+    "order": 10,
+    "icon": "salad",
+    "products": [
+      {
+        "id": "0XeYIO66BGGDVZbzvkIu",
+        "name": "Espresso",
+        "price": 75,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "21HBHl9GfhP6Kjkz1ENh",
+        "name": "Türk Kahvesi",
+        "price": 70,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "LGGBaxjAErAGKiXkXu7r",
+        "name": "Filtre Kahve",
+        "price": 70,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "Q139eNrn60rqG0zCv32R",
+        "name": "Cappuccino",
+        "price": 110,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "SH0NASoYXLRWeXjM7gXC",
+        "name": "Americano",
+        "price": 90,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "hfjuAGmbzthlHdpG37FJ",
+        "name": "Espresso Double",
+        "price": 90,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "ssUvaX4u94rtFj3TYwYr",
+        "name": "Çay",
+        "price": 20,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "wNivd9unUA81rQmKZNhT",
+        "name": "Cafe Latte",
+        "price": 110,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "lKEsPjjMDIjucLMx3QQb",
+    "name": "SOĞUK KAHVELER",
+    "order": 11,
+    "icon": "salad",
+    "products": [
+      {
+        "id": "9TyvOH8vZydDrQ5TaKyi",
+        "name": "Ice Americano",
+        "price": 75,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      },
+      {
+        "id": "Xriy9d1UrFlNXoT4QvCc",
+        "name": "Ice Latte",
+        "price": 90,
+        "description": "",
+        "image": "",
+        "popular": false,
+        "status": "active",
+        "options": []
+      }
+    ]
+  }
+]

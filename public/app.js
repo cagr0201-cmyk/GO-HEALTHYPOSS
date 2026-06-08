@@ -3322,9 +3322,12 @@ function renderLedgerTable() {
       <td><span class="ledger-badge ${tx.paymentMethod.toLowerCase()}">${payStr}</span></td>
       <td>${discountStr}</td>
       <td style="font-weight:700; color:var(--status-free);">${tx.total.toFixed(2)} ₺</td>
-      <td>
+      <td style="display:flex; gap:6px; flex-wrap:wrap;">
         <button class="ledger-action-btn" onclick="event.stopPropagation(); showLedgerReceipt('${tx.id}')">
           Fiş Detay
+        </button>
+        <button class="ledger-action-btn" style="background:rgba(245,158,11,0.15); border-color:rgba(245,158,11,0.4); color:#F59E0B;" onclick="event.stopPropagation(); openPaymentCorrectModal('${tx.id}', '${tx.paymentMethod}')">
+          Ödeme Düzelt
         </button>
       </td>
     `;
@@ -3337,6 +3340,296 @@ function showLedgerReceipt(txId) {
   if (tx) {
     generateReceiptHTML(tx);
     document.getElementById('modal-receipt').classList.add('active');
+  }
+}
+
+// --- ÖDEME YÖNTEMİ DÜZELTME MODALI ---
+function openPaymentCorrectModal(txId, currentMethod) {
+  const tx = AppState.salesHistory.find(t => t.id === txId);
+  if (!tx) {
+    showToast('İşlem detayları bulunamadı!', 'error');
+    return;
+  }
+
+  // Mevcut modalı kaldır (varsa)
+  const existingModal = document.getElementById('modal-payment-correct');
+  if (existingModal) existingModal.remove();
+
+  const payMap = { 'CASH': 'Nakit', 'CARD': 'Kredi Kartı', 'MEALCARD': 'Yemek Kartı', 'OTHER': 'Diğer' };
+  const methods = ['CASH', 'CARD', 'MEALCARD', 'OTHER'];
+
+  const options = methods.map(m => `
+    <button
+      id="pc-btn-${m}"
+      class="payment-correct-option ${m === currentMethod ? 'active' : ''}"
+      onclick="selectPaymentCorrectOption('${m}')"
+      data-method="${m}"
+    >
+      ${payMap[m]}
+    </button>
+  `).join('');
+
+  const subtotal = tx.subtotal || tx.total;
+  const discount = tx.discount || 0;
+  const total = tx.total || subtotal;
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-payment-correct';
+  modal.className = 'modal-overlay active';
+  modal.innerHTML = `
+    <div class="modal-panel" style="max-width: 440px; width: 90%; background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 20px; box-shadow: var(--shadow-main); animation: fadeIn 0.3s ease-out;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-light); padding: 16px 20px;">
+        <span class="modal-title" style="color: #F59E0B; font-weight:700; font-size:16px; display:flex; align-items:center; gap:6px;">
+          <i data-lucide="edit-3" style="width:18px;height:18px;"></i>
+          Ödeme & Satış Düzeltme
+        </span>
+        <button class="modal-close" style="background:none; border:none; color:var(--text-muted); font-size:24px; cursor:pointer;" onclick="document.getElementById('modal-payment-correct').remove()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px; display:flex; flex-direction:column; gap:16px;">
+        
+        <div style="background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.25); border-radius:12px; padding:12px; font-size:12px; color:#F59E0B; line-height:1.4;">
+          ⚠️ Bu panel <strong>${txId}</strong> nolu faturanın ödeme tipini, iskonto oranını veya toplam tutarını geriye dönük düzeltmenizi veya fişi iptal etmenizi sağlar.
+        </div>
+
+        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--text-secondary); border-bottom:1px solid var(--border-light); padding-bottom:8px;">
+          <span>Masa / Kanal: <strong>${tx.tableName}</strong></span>
+          <span>Garson: <strong>${(tx.waiterId || 'kasiyer').toUpperCase()}</strong></span>
+        </div>
+
+        <!-- ÖDEME YÖNTEMİ SEÇİMİ -->
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; color:var(--text-secondary); font-weight:600;">Ödeme Yöntemi:</span>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;" id="payment-correct-options">
+            ${options}
+          </div>
+        </div>
+
+        <!-- İSKONTO VE TUTAR DÜZELTME -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; border-top:1px solid var(--border-light); padding-top:14px;">
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:12px; color:var(--text-secondary); font-weight:600;">İskonto Değeri:</label>
+            <div style="display:flex; gap:4px;">
+              <input type="number" id="pc-discount-input" value="${discount}" min="0" style="width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:8px; padding:8px; color:white; font-size:14px; text-align:center;" oninput="recalculateCorrectionTotals('${txId}')">
+              <select id="pc-discount-type-select" style="background:var(--bg-card); border:1px solid var(--border-light); border-radius:8px; padding:8px; color:white; font-size:13px; cursor:pointer;" onchange="recalculateCorrectionTotals('${txId}')">
+                <option value="percent">%</option>
+                <option value="amount">₺</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:12px; color:var(--text-secondary); font-weight:600;">Genel Toplam (₺):</label>
+            <input type="number" id="pc-total-input" value="${total.toFixed(2)}" min="0" step="any" style="width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:8px; padding:8px; color:white; font-size:14px; font-weight:700; text-align:center;" oninput="onCorrectionTotalInput('${txId}')">
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); background:rgba(255,255,255,0.02); padding:8px 12px; border-radius:8px;">
+          <span>Ara Toplam: <strong>${subtotal.toFixed(2)} ₺</strong></span>
+          <span>İskonto Düşülen: <strong id="pc-discount-amount-label">${(subtotal - total).toFixed(2)} ₺</strong></span>
+        </div>
+
+        <!-- İPTAL / İADE İŞLEMİ -->
+        <div style="border-top: 1px dashed var(--border-light); margin-top: 6px; padding-top: 14px; display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:12px; color:var(--text-secondary); font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+            <span>İptal / İade Seçeneği:</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <input type="checkbox" id="pc-return-stock-checkbox" checked style="width:15px; height:15px; accent-color: var(--accent-pink); cursor:pointer;">
+              <label for="pc-return-stock-checkbox" style="font-size:11px; color:var(--text-primary); cursor:pointer; font-weight:normal;">Ürünleri Stoğa İade Et</label>
+            </div>
+          </div>
+          <button
+            class="modal-btn"
+            style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); color:#EF4444; border-radius:10px; padding:10px; font-size:13px; font-weight:700; cursor:pointer; width:100%; transition:all 0.2s;"
+            onmouseover="this.style.background='rgba(239,68,68,0.15)'"
+            onmouseout="this.style.background='rgba(239,68,68,0.08)'"
+            onclick="voidTransaction('${txId}')"
+          >
+            🗑️ Fişi Tamamen İptal Et (Sil)
+          </button>
+        </div>
+
+        <!-- ONAY & VAZGEÇ BUTONLARI -->
+        <div style="display:flex; gap:10px; margin-top:8px; border-top: 1px solid var(--border-light); padding-top:14px;">
+          <button
+            class="modal-confirm-btn"
+            style="flex:1.2; background:linear-gradient(135deg,#F59E0B,#D97706); border:none; color:#fff; border-radius:10px; padding:12px; font-size:14px; font-weight:700; cursor:pointer;"
+            onclick="confirmPaymentCorrection('${txId}')"
+          >
+            ✓ Değişiklikleri Kaydet
+          </button>
+          <button
+            style="flex:0.8; background:rgba(255,255,255,0.05); border:1px solid var(--border-light); color:var(--text-secondary); border-radius:10px; padding:12px; font-size:14px; cursor:pointer;"
+            onclick="document.getElementById('modal-payment-correct').remove()"
+          >
+            İptal
+          </button>
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  // Seçili method state'ini kaydet
+  modal.dataset.selectedMethod = currentMethod;
+  modal.dataset.calculatedDiscount = discount;
+  modal.dataset.calculatedTotal = total;
+  lucide.createIcons();
+}
+
+function selectPaymentCorrectOption(method) {
+  const modal = document.getElementById('modal-payment-correct');
+  if (!modal) return;
+  modal.dataset.selectedMethod = method;
+  document.querySelectorAll('.payment-correct-option').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.method === method);
+  });
+}
+
+function recalculateCorrectionTotals(txId) {
+  const tx = AppState.salesHistory.find(t => t.id === txId);
+  if (!tx) return;
+  const subtotal = tx.subtotal || tx.total;
+  
+  const discountInput = document.getElementById('pc-discount-input');
+  const discountTypeSelect = document.getElementById('pc-discount-type-select');
+  const totalInput = document.getElementById('pc-total-input');
+  const discountAmountLabel = document.getElementById('pc-discount-amount-label');
+  
+  const discountType = discountTypeSelect ? discountTypeSelect.value : 'percent';
+  const discountInputValue = parseFloat(discountInput.value) || 0;
+  
+  let discountPercent = 0;
+  let discountAmount = 0;
+  
+  if (discountType === 'percent') {
+    discountPercent = Math.min(100, Math.max(0, discountInputValue));
+    discountAmount = subtotal * (discountPercent / 100);
+  } else {
+    discountAmount = Math.min(subtotal, Math.max(0, discountInputValue));
+    discountPercent = subtotal > 0 ? (discountAmount / subtotal) * 100 : 0;
+  }
+  
+  const newTotal = subtotal - discountAmount;
+  if (totalInput) {
+    totalInput.value = newTotal.toFixed(2);
+  }
+  if (discountAmountLabel) {
+    discountAmountLabel.textContent = `${discountAmount.toFixed(2)} ₺`;
+  }
+  
+  const modal = document.getElementById('modal-payment-correct');
+  if (modal) {
+    modal.dataset.calculatedDiscount = discountPercent;
+    modal.dataset.calculatedTotal = newTotal;
+  }
+}
+
+function onCorrectionTotalInput(txId) {
+  const tx = AppState.salesHistory.find(t => t.id === txId);
+  if (!tx) return;
+  const subtotal = tx.subtotal || tx.total;
+  
+  const totalInput = document.getElementById('pc-total-input');
+  const discountInput = document.getElementById('pc-discount-input');
+  const discountTypeSelect = document.getElementById('pc-discount-type-select');
+  const discountAmountLabel = document.getElementById('pc-discount-amount-label');
+  
+  const newTotal = Math.max(0, parseFloat(totalInput.value) || 0);
+  const discountAmount = Math.max(0, subtotal - newTotal);
+  const discountPercent = subtotal > 0 ? (discountAmount / subtotal) * 100 : 0;
+  
+  const discountType = discountTypeSelect ? discountTypeSelect.value : 'percent';
+  if (discountInput) {
+    if (discountType === 'percent') {
+      discountInput.value = discountPercent.toFixed(1);
+    } else {
+      discountInput.value = discountAmount.toFixed(2);
+    }
+  }
+  if (discountAmountLabel) {
+    discountAmountLabel.textContent = `${discountAmount.toFixed(2)} ₺`;
+  }
+  
+  const modal = document.getElementById('modal-payment-correct');
+  if (modal) {
+    modal.dataset.calculatedDiscount = discountPercent;
+    modal.dataset.calculatedTotal = newTotal;
+  }
+}
+
+async function confirmPaymentCorrection(txId) {
+  const modal = document.getElementById('modal-payment-correct');
+  if (!modal) return;
+  const newMethod = modal.dataset.selectedMethod;
+  const newDiscount = modal.dataset.calculatedDiscount !== undefined ? parseFloat(modal.dataset.calculatedDiscount) : undefined;
+  const newTotal = modal.dataset.calculatedTotal !== undefined ? parseFloat(modal.dataset.calculatedTotal) : undefined;
+  
+  if (!newMethod) {
+    showToast('Lütfen bir ödeme yöntemi seçin!', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/sales/${encodeURIComponent(txId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        paymentMethod: newMethod,
+        discount: newDiscount,
+        total: newTotal
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Sunucu hatası');
+
+    showToast(`✓ ${txId} fişinin ödemesi başarıyla güncellendi.`, 'success');
+    modal.remove();
+    
+    // Refetch history and update all UI tabs
+    await fetchSalesHistoryFromServer();
+    renderLedgerTable();
+    renderClosingsTab();
+    if (AppState.activeView === 'dashboard') {
+      renderDashboard();
+    }
+  } catch (err) {
+    console.error(err);
+    showToast(`Hata: ${err.message}`, 'error');
+  }
+}
+
+async function voidTransaction(txId) {
+  const returnStockCheckbox = document.getElementById('pc-return-stock-checkbox');
+  const returnToStock = returnStockCheckbox ? returnStockCheckbox.checked : true;
+  
+  const confirmMsg = returnToStock 
+    ? `${txId} nolu fişi tamamen iptal etmek ve ürünleri stoğa geri yüklemek istediğinizden emin misiniz?`
+    : `${txId} nolu fişi tamamen iptal etmek istediğinizden emin misiniz? (Ürünler stoğa iade edilmeyecektir)`;
+    
+  if (!confirm(confirmMsg)) return;
+  
+  try {
+    const res = await fetch(`/api/sales/${encodeURIComponent(txId)}?returnToStock=${returnToStock}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Sunucu hatası');
+    
+    showToast(`✓ ${txId} nolu fiş başarıyla iptal edildi.`, 'success');
+    
+    const modal = document.getElementById('modal-payment-correct');
+    if (modal) modal.remove();
+    
+    // Refetch history and update all UI tabs
+    await fetchSalesHistoryFromServer();
+    renderLedgerTable();
+    renderClosingsTab();
+    if (AppState.activeView === 'dashboard') {
+      renderDashboard();
+    }
+  } catch (err) {
+    console.error(err);
+    showToast(`Hata: ${err.message}`, 'error');
   }
 }
 

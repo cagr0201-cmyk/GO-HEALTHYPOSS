@@ -2508,6 +2508,34 @@ button, input, select, textarea {
   color: white;
 }
 
+/* Ödeme Yöntemi Düzeltme Modal Seçenekleri */
+.payment-correct-option {
+  padding: 12px 8px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--border-light);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.payment-correct-option:hover {
+  border-color: #F59E0B;
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.payment-correct-option.active {
+  border-color: #F59E0B;
+  background: rgba(245, 158, 11, 0.18);
+  color: #F59E0B;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+}
+
+
 /* Leaflet Map Dark Theme Integration */
 .leaflet-container {
   background: #090d16 !important;
