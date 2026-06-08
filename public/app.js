@@ -4296,11 +4296,13 @@ async function submitDailyClosing(event) {
         alert("🎉 Gün Sonu (Z Raporu) İşlemi Başarıyla Tamamlandı!\n\nRapor veritabanına kaydedildi ve termal yazıcıya gönderildi.\nSistemdeki kasa ve ciro beklentileri sıfırlandı.");
       }, 100);
     } else {
-      showToast('Gün sonu işlemi kaydedilemedi!', 'error');
+      const errData = await res.json().catch(() => ({}));
+      const errMsg = errData.error || 'Bilinmeyen sunucu hatası';
+      showToast(`Gün sonu işlemi kaydedilemedi! Hata: ${errMsg}`, 'error');
     }
   } catch (err) {
     console.error('Error closing register:', err);
-    showToast('Gün sonu işlemi kaydedilemedi!', 'error');
+    showToast(`Gün sonu işlemi kaydedilemedi! Hata: ${err.message}`, 'error');
   }
 }
 

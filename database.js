@@ -39,7 +39,20 @@ const KEY_MAPPING = {
   waiterid: 'waiterId',
   tablename: 'tableName',
   paymentmethod: 'paymentMethod',
-  shiftstart: 'shiftStart'
+  shiftstart: 'shiftStart',
+  staffid: 'staffId',
+  closedby: 'closedBy',
+  startingcash: 'startingCash',
+  expectedcash: 'expectedCash',
+  countedcash: 'countedCash',
+  expectedcard: 'expectedCard',
+  countedcard: 'countedCard',
+  expectedmealcard: 'expectedMealcard',
+  countedmealcard: 'countedMealcard',
+  expectedother: 'expectedOther',
+  countedother: 'countedOther',
+  totalrevenue: 'totalRevenue',
+  totalexpenses: 'totalExpenses'
 };
 
 function normalizeRow(row) {
