@@ -4361,6 +4361,9 @@ function renderClosingsList() {
           <button onclick="printZReportDirectly('${c.id}')" style="background: rgba(222,193,138,0.15); border: 1px solid var(--accent-gold); color: var(--accent-gold); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;">
             <i data-lucide="printer" style="width: 12px; height: 12px;"></i> Yazdır
           </button>
+          <button onclick="openEditZReportModal('${c.id}')" style="background: rgba(245, 158, 11, 0.15); border: 1px solid #F59E0B; color: #F59E0B; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+            <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i> Düzenle
+          </button>
           <button onclick="deleteZReport('${c.id}')" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--status-busy); color: var(--status-busy); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
             <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Sil
           </button>
@@ -4390,6 +4393,119 @@ async function deleteZReport(closingId) {
     renderClosingsTab();
   } catch (err) {
     console.error('Error deleting Z-report:', err);
+    showToast(`Hata: ${err.message}`, 'error');
+  }
+}
+
+function openEditZReportModal(closingId) {
+  const c = AppState.dailyClosings.find(x => x.id === closingId);
+  if (!c) {
+    showToast('Gün sonu kaydı bulunamadı!', 'error');
+    return;
+  }
+  
+  const existingModal = document.getElementById('modal-edit-zreport');
+  if (existingModal) existingModal.remove();
+  
+  const modal = document.createElement('div');
+  modal.id = 'modal-edit-zreport';
+  modal.className = 'modal-overlay active';
+  modal.innerHTML = `
+    <div class="modal-panel" style="max-width: 440px; width: 90%; background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 20px; box-shadow: var(--shadow-main); animation: fadeIn 0.3s ease-out;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-light); padding: 16px 20px;">
+        <span class="modal-title" style="color: var(--accent-gold); font-weight:700; font-size:16px; display:flex; align-items:center; gap:6px;">
+          <i data-lucide="edit-3" style="width:18px;height:18px;"></i>
+          Gün Sonu Z-Raporu Düzenleme
+        </span>
+        <button class="modal-close" style="background:none; border:none; color:var(--text-muted); font-size:24px; cursor:pointer;" onclick="document.getElementById('modal-edit-zreport').remove()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px; display:flex; flex-direction:column; gap:16px;">
+        
+        <div style="background:rgba(222,193,138,0.06); border:1px solid rgba(222,193,138,0.25); border-radius:12px; padding:12px; font-size:12px; color:var(--accent-gold); line-height:1.4;">
+          ⚠️ Bu panel <strong>${closingId}</strong> nolu Gün Sonu (Z Raporu) kaydının sayılan miktarlarını ve notlarını düzenlemenizi sağlar. Beklenen tutarlar değiştirilemez.
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <label style="font-size:12px; color:var(--text-secondary); font-weight:600;">Sayılan Nakit (Beklenen: ${c.expectedCash.toFixed(2)} ₺):</label>
+            <input type="number" id="ez-counted-cash" value="${c.countedCash}" min="0" step="any" style="width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:8px; padding:8px; color:white; font-size:14px;">
+          </div>
+          
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <label style="font-size:12px; color:var(--text-secondary); font-weight:600;">Sayılan Kredi Kartı (Beklenen: ${c.expectedCard.toFixed(2)} ₺):</label>
+            <input type="number" id="ez-counted-card" value="${c.countedCard}" min="0" step="any" style="width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:8px; padding:8px; color:white; font-size:14px;">
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <label style="font-size:12px; color:var(--text-secondary); font-weight:600;">Sayılan Yemek Kartı (Beklenen: ${c.expectedMealcard.toFixed(2)} ₺):</label>
+            <input type="number" id="ez-counted-meal" value="${c.countedMealcard}" min="0" step="any" style="width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:8px; padding:8px; color:white; font-size:14px;">
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <label style="font-size:12px; color:var(--text-secondary); font-weight:600;">Sayılan Diğer (Beklenen: ${c.expectedOther.toFixed(2)} ₺):</label>
+            <input type="number" id="ez-counted-other" value="${c.countedOther}" min="0" step="any" style="width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:8px; padding:8px; color:white; font-size:14px;">
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <label style="font-size:12px; color:var(--text-secondary); font-weight:600;">Notlar:</label>
+            <textarea id="ez-notes" style="width:100%; height:60px; resize:none; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:8px; padding:8px; color:white; font-size:13px;">${c.notes || ''}</textarea>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:8px; border-top: 1px solid var(--border-light); padding-top:14px;">
+          <button
+            class="modal-confirm-btn"
+            style="flex:1.2; background:linear-gradient(135deg,var(--accent-gold),#bda26f); border:none; color:#111; border-radius:10px; padding:12px; font-size:14px; font-weight:700; cursor:pointer;"
+            onclick="saveEditZReport('${closingId}')"
+          >
+            ✓ Değişiklikleri Kaydet
+          </button>
+          <button
+            style="flex:0.8; background:rgba(255,255,255,0.05); border:1px solid var(--border-light); color:var(--text-secondary); border-radius:10px; padding:12px; font-size:14px; cursor:pointer;"
+            onclick="document.getElementById('modal-edit-zreport').remove()"
+          >
+            İptal
+          </button>
+        </div>
+
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  lucide.createIcons();
+}
+
+async function saveEditZReport(closingId) {
+  const countedCash = parseFloat(document.getElementById('ez-counted-cash').value) || 0;
+  const countedCard = parseFloat(document.getElementById('ez-counted-card').value) || 0;
+  const countedMeal = parseFloat(document.getElementById('ez-counted-meal').value) || 0;
+  const countedOther = parseFloat(document.getElementById('ez-counted-other').value) || 0;
+  const notes = document.getElementById('ez-notes').value.trim();
+  
+  try {
+    const res = await fetch(`/api/closings/${encodeURIComponent(closingId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        countedCash,
+        countedCard,
+        countedMealcard: countedMeal,
+        countedOther,
+        notes
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Güncelleme işlemi başarısız.');
+    
+    showToast('✓ Z-Raporu başarıyla güncellendi.', 'success');
+    const modal = document.getElementById('modal-edit-zreport');
+    if (modal) modal.remove();
+    
+    await fetchClosingsFromServer();
+    renderClosingsTab();
+  } catch (err) {
+    console.error('Error saving Z-report edits:', err);
     showToast(`Hata: ${err.message}`, 'error');
   }
 }

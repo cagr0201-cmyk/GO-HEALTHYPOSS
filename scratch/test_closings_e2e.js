@@ -120,6 +120,37 @@ async function main() {
     }
     console.log("✓ Closing data successfully verified in database.");
 
+    // 5.5. PATCH /api/closings/:id
+    console.log("\n--- Testing PATCH /api/closings/:id ---");
+    const patchRes = await fetch(`${BASE_URL}/api/closings/Z-TEST-9999`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        countedCash: 900,
+        countedCard: 1200,
+        countedMealcard: 450,
+        countedOther: 0,
+        notes: "Düzeltildi: eksik yok"
+      })
+    });
+    if (patchRes.status !== 200) {
+      throw new Error(`PATCH /api/closings returned status ${patchRes.status}`);
+    }
+    const patchResult = await patchRes.json();
+    console.log("PATCH Result:", patchResult);
+    if (!patchResult.success) {
+      throw new Error("Expected patch result to indicate success");
+    }
+    
+    // Verify patch updates via GET
+    const getRes2_5 = await fetch(`${BASE_URL}/api/closings`);
+    const closings2_5 = await getRes2_5.json();
+    const patched = closings2_5[0];
+    if (patched.countedCash !== 900 || patched.countedMealcard !== 450 || patched.notes !== "Düzeltildi: eksik yok") {
+      throw new Error("Patched Z-report data mismatch!");
+    }
+    console.log("✓ Patched data successfully verified in database.");
+
     // 6. DELETE /api/closings/:id
     console.log("\n--- Testing DELETE /api/closings/:id ---");
     const delRes = await fetch(`${BASE_URL}/api/closings/Z-TEST-9999`, {
