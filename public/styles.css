@@ -2815,3 +2815,26 @@ button, input, select, textarea {
   box-shadow: 0 0 4px rgba(197, 160, 89, 0.2);
 }
 
+.cart-item-note-btn {
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-item-note-btn:hover {
+  color: var(--brand-gold);
+  transform: scale(1.1);
+}
+
+.cart-item-note-btn.active {
+  color: var(--brand-gold);
+}
+
+.cart-item-note-btn svg {
+  width: 16px;
+  height: 16px;
+}
+

@@ -806,6 +806,9 @@ function renderCart() {
           <div class="qty-btn" onclick="updateCartItemQty('${tableId}', ${index}, 1)"><i data-lucide="plus"></i></div>
         </div>
         <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="cart-item-note-btn ${item.note ? 'active' : ''}" title="Not Ekle/Düzenle" onclick="openEditCartItemNoteModal('${tableId}', ${index})">
+            <i data-lucide="message-square"></i>
+          </div>
           <div class="cart-item-ikram-btn ${item.ikram ? 'active' : ''}" title="İkram Et" onclick="toggleCartItemIkram('${tableId}', ${index})">
             <i data-lucide="gift"></i>
           </div>
@@ -1084,8 +1087,13 @@ function openCustomiseModal(item, callback) {
   const modal = document.getElementById('modal-customise');
   document.getElementById('customise-item-title').textContent = item.name;
   
+  const optionsTitle = document.getElementById('customise-options-title');
   const optionsList = document.getElementById('customise-options-list');
   optionsList.innerHTML = '';
+  
+  if (optionsTitle) optionsTitle.style.display = 'block';
+  optionsList.style.display = 'flex';
+  
   selectedOption = item.options[0];
   
   item.options.forEach((opt, idx) => {
@@ -1104,10 +1112,64 @@ function openCustomiseModal(item, callback) {
   modal.classList.add('active');
 
   const confirmBtn = document.getElementById('btn-customise-confirm');
+  confirmBtn.textContent = 'Siparişe Ekle';
   confirmBtn.onclick = () => {
     const note = document.getElementById('customise-item-note').value.trim();
     modal.classList.remove('active');
     callback(selectedOption, note);
+  };
+}
+
+function openEditCartItemNoteModal(tableId, index) {
+  const order = AppState.activeOrders[tableId];
+  if (!order || !order.items || !order.items[index]) return;
+  const cartItem = order.items[index];
+  
+  const menuItem = AppState.menuItems.find(i => i.id === cartItem.id || i.name === cartItem.name);
+  
+  const modal = document.getElementById('modal-customise');
+  document.getElementById('customise-item-title').textContent = cartItem.name;
+  
+  const optionsTitle = document.getElementById('customise-options-title');
+  const optionsList = document.getElementById('customise-options-list');
+  optionsList.innerHTML = '';
+  
+  if (menuItem && menuItem.options && menuItem.options.length > 0) {
+    if (optionsTitle) optionsTitle.style.display = 'block';
+    optionsList.style.display = 'flex';
+    selectedOption = cartItem.option || menuItem.options[0];
+    
+    menuItem.options.forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.className = `option-badge-btn ${opt === selectedOption ? 'selected' : ''}`;
+      btn.textContent = opt;
+      btn.onclick = () => {
+        document.querySelectorAll('.option-badge-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedOption = opt;
+      };
+      optionsList.appendChild(btn);
+    });
+  } else {
+    if (optionsTitle) optionsTitle.style.display = 'none';
+    optionsList.style.display = 'none';
+    selectedOption = '';
+  }
+  
+  document.getElementById('customise-item-note').value = cartItem.note || '';
+  modal.classList.add('active');
+
+  const confirmBtn = document.getElementById('btn-customise-confirm');
+  confirmBtn.textContent = 'Güncelle';
+  confirmBtn.onclick = () => {
+    const note = document.getElementById('customise-item-note').value.trim();
+    modal.classList.remove('active');
+    
+    cartItem.option = selectedOption || null;
+    cartItem.note = note || null;
+    
+    saveActiveOrderToServer(tableId);
+    renderCart();
   };
 }
 
