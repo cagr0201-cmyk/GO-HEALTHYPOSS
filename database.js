@@ -52,7 +52,8 @@ const KEY_MAPPING = {
   expectedother: 'expectedOther',
   countedother: 'countedOther',
   totalrevenue: 'totalRevenue',
-  totalexpenses: 'totalExpenses'
+  totalexpenses: 'totalExpenses',
+  customlabel: 'customLabel'
 };
 
 function normalizeRow(row) {
@@ -158,6 +159,17 @@ async function initDatabase() {
     orderType TEXT,
     waiterId TEXT
   )`);
+
+  try {
+    await run(`ALTER TABLE active_orders ADD COLUMN timestamp TEXT`);
+  } catch (err) {
+    // Column might already exist
+  }
+  try {
+    await run(`ALTER TABLE active_orders ADD COLUMN customLabel TEXT`);
+  } catch (err) {
+    // Column might already exist
+  }
 
   await run(`CREATE TABLE IF NOT EXISTS kitchen_orders (
     id TEXT PRIMARY KEY,
@@ -1006,7 +1018,9 @@ async function getAppState() {
       items: JSON.parse(a.items),
       discount: a.discount,
       orderType: a.orderType,
-      waiterId: a.waiterId
+      waiterId: a.waiterId,
+      timestamp: a.timestamp || null,
+      customLabel: a.customLabel || null
     };
   });
 

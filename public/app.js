@@ -209,7 +209,9 @@ async function saveActiveOrderToServer(tableId) {
           items: order.items,
           discount: order.discount,
           orderType: order.orderType,
-          waiterId: order.waiterId
+          waiterId: order.waiterId,
+          timestamp: order.timestamp,
+          customLabel: order.customLabel
         })
       });
     }
@@ -228,6 +230,9 @@ function initClock() {
     
     if (AppState.activeView === 'kitchen') {
       updateKitchenTimers();
+    }
+    if (AppState.activeView === 'tables') {
+      updateTableMapTimers();
     }
   }, 1000);
 }
@@ -495,11 +500,22 @@ function renderTableMap() {
     tableDiv.style.top = `${table.y}%`;
     
     let totalText = 'Boş';
+    let timerBadge = '';
+    let displayName = table.name;
     if (table.status !== 'free') {
       const activeOrder = AppState.activeOrders[table.id];
       if (activeOrder) {
         const totalAmount = calculateOrderTotal(activeOrder);
         totalText = `${totalAmount.toFixed(2)} ₺`;
+        if (activeOrder.customLabel) {
+          displayName = `${table.name} - ${activeOrder.customLabel}`;
+        }
+        if (activeOrder.timestamp) {
+          const startTime = new Date(activeOrder.timestamp);
+          const elapsedMins = Math.max(0, Math.floor((new Date() - startTime) / 60000));
+          const timeStr = startTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+          timerBadge = `<div class="table-timer" data-timestamp="${activeOrder.timestamp}">${timeStr} (${elapsedMins} dk)</div>`;
+        }
       }
     }
     
@@ -508,7 +524,8 @@ function renderTableMap() {
         ${table.id}
       </div>
       <div class="table-details">
-        ${table.name}<br><strong>${totalText}</strong>
+        ${displayName}<br><strong>${totalText}</strong>
+        ${timerBadge}
       </div>
     `;
     
@@ -521,6 +538,18 @@ function renderTableMap() {
       switchScreen('pos');
     };
     mapArea.appendChild(tableDiv);
+  });
+}
+
+function updateTableMapTimers() {
+  if (AppState.activeView !== 'tables') return;
+  document.querySelectorAll('.table-timer').forEach(el => {
+    const ts = el.getAttribute('data-timestamp');
+    if (!ts) return;
+    const startTime = new Date(ts);
+    const elapsedMins = Math.max(0, Math.floor((new Date() - startTime) / 60000));
+    const timeStr = startTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    el.textContent = `${timeStr} (${elapsedMins} dk)`;
   });
 }
 
@@ -664,6 +693,20 @@ function renderCart() {
   const tableId = AppState.selectedTable ? AppState.selectedTable.id : 'quick';
   tableLabel.textContent = AppState.selectedTable ? AppState.selectedTable.name : 'Hızlı Satış';
   
+  const labelContainer = document.getElementById('cart-custom-label-container');
+  const labelInput = document.getElementById('cart-custom-label-input');
+  if (labelContainer && labelInput) {
+    if (AppState.selectedTable) {
+      labelContainer.style.display = 'flex';
+      const order = AppState.activeOrders[tableId];
+      if (document.activeElement !== labelInput) {
+        labelInput.value = order ? (order.customLabel || '') : '';
+      }
+    } else {
+      labelContainer.style.display = 'none';
+    }
+  }
+
   let activeOrder = AppState.activeOrders[tableId];
   
   if (!activeOrder || !activeOrder.items || activeOrder.items.length === 0) {
@@ -711,7 +754,7 @@ function renderCart() {
   const discountInput = document.getElementById('summary-discount-input');
   if (discountInput) {
     if ((activeOrder.discountType || 'percent') === 'amount') {
-      const subtotal = activeOrder.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const subtotal = activeOrder.items.reduce((sum, item) => sum + (item.ikram ? 0 : item.price * item.quantity), 0);
       discountInput.value = (subtotal * (activeOrder.discount || 0) / 100).toFixed(2);
     } else {
       discountInput.value = activeOrder.discount || 0;
@@ -724,15 +767,21 @@ function renderCart() {
     
     let noteText = item.note ? `<div class="cart-item-note">* Not: ${item.note}</div>` : '';
     let optText = item.option ? ` (${item.option})` : '';
+    let priceHTML = '';
+    if (item.ikram) {
+      priceHTML = `<span style="text-decoration: line-through; opacity: 0.5; font-size: 12px; margin-right: 6px;">${(item.price * item.quantity).toFixed(2)} ₺</span><span style="font-weight: bold; color: var(--brand-gold);">0.00 ₺</span>`;
+    } else {
+      priceHTML = `${(item.price * item.quantity).toFixed(2)} ₺`;
+    }
     
     itemDiv.innerHTML = `
       <div class="cart-item-row">
         <div class="cart-item-info">
-          <div class="cart-item-name">${item.name}${optText}</div>
+          <div class="cart-item-name">${item.name}${optText}${item.ikram ? ' <span style="font-size: 10px; background: var(--brand-gold); color: #000; padding: 2px 4px; border-radius: 4px; font-weight: bold; margin-left: 4px;">İkram</span>' : ''}</div>
           ${noteText}
         </div>
         <div class="cart-item-price-col">
-          <div class="cart-item-price">${(item.price * item.quantity).toFixed(2)} ₺</div>
+          <div class="cart-item-price">${priceHTML}</div>
         </div>
       </div>
       <div class="cart-item-actions">
@@ -741,8 +790,13 @@ function renderCart() {
           <span class="qty-number">${item.quantity}</span>
           <div class="qty-btn" onclick="updateCartItemQty('${tableId}', ${index}, 1)"><i data-lucide="plus"></i></div>
         </div>
-        <div class="cart-item-remove-btn" onclick="removeCartItem('${tableId}', ${index})">
-          <i data-lucide="trash-2"></i>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="cart-item-ikram-btn ${item.ikram ? 'active' : ''}" title="İkram Et" onclick="toggleCartItemIkram('${tableId}', ${index})">
+            <i data-lucide="gift"></i>
+          </div>
+          <div class="cart-item-remove-btn" onclick="removeCartItem('${tableId}', ${index})">
+            <i data-lucide="trash-2"></i>
+          </div>
         </div>
       </div>
     `;
@@ -751,6 +805,33 @@ function renderCart() {
   
   recalculateTotals(false);
   lucide.createIcons();
+}
+
+function updateCartCustomLabel(value) {
+  if (!AppState.selectedTable) return;
+  const tableId = AppState.selectedTable.id;
+  if (!AppState.activeOrders[tableId]) {
+    AppState.activeOrders[tableId] = {
+      items: [],
+      discount: 0,
+      orderType: 'dine-in',
+      waiterId: document.getElementById('cart-waiter-select').value || 'garson',
+      timestamp: new Date().toISOString(),
+      customLabel: ''
+    };
+  }
+  AppState.activeOrders[tableId].customLabel = value;
+  saveActiveOrderToServer(tableId);
+}
+
+function toggleCartItemIkram(tableId, index) {
+  const order = AppState.activeOrders[tableId];
+  if (!order || !order.items || !order.items[index]) return;
+  
+  order.items[index].ikram = !order.items[index].ikram;
+  
+  recalculateTotals();
+  renderCart();
 }
 
 async function handleAddItemToCart(itemId) {
@@ -771,7 +852,9 @@ async function handleAddItemToCart(itemId) {
       items: [],
       discount: 0,
       orderType: 'dine-in',
-      waiterId: document.getElementById('cart-waiter-select').value
+      waiterId: document.getElementById('cart-waiter-select').value || 'garson',
+      timestamp: new Date().toISOString(),
+      customLabel: ''
     };
   }
 
@@ -914,7 +997,7 @@ async function recalculateTotals(shouldSave = true) {
   
   if (!order) return;
 
-  const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = order.items.reduce((sum, item) => sum + (item.ikram ? 0 : item.price * item.quantity), 0);
   
   const discountInput = document.getElementById('summary-discount-input');
   const discountTypeSelect = document.getElementById('discount-type-select');
@@ -953,7 +1036,7 @@ async function recalculateTotals(shouldSave = true) {
 
 function calculateOrderTotal(order) {
   if (!order || !order.items) return 0;
-  const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = order.items.reduce((sum, item) => sum + (item.ikram ? 0 : item.price * item.quantity), 0);
   const discountAmount = subtotal * ((order.discount || 0) / 100);
   const subtotalWithDiscount = subtotal - discountAmount;
   return subtotalWithDiscount;
@@ -1015,7 +1098,7 @@ async function sendActiveOrderToKitchen() {
   const kitchenTicket = {
     id: 'K-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
     tableId: tableId,
-    tableName: AppState.selectedTable ? AppState.selectedTable.name : 'Hızlı Satış',
+    tableName: AppState.selectedTable ? (order.customLabel ? `${AppState.selectedTable.name} - ${order.customLabel}` : AppState.selectedTable.name) : 'Hızlı Satış',
     waiterId: order.waiterId,
     timestamp: new Date().toISOString(),
     status: 'cooking',
@@ -1025,6 +1108,7 @@ async function sendActiveOrderToKitchen() {
       quantity: item.quantity,
       option: item.option,
       note: item.note,
+      ikram: !!item.ikram,
       cooked: false
     }))
   };
@@ -1171,7 +1255,7 @@ function renderKitchenMonitor() {
           <div style="display: flex; align-items: flex-start;">
             <span class="k-item-qty">${item.quantity}x</span>
             <div class="k-item-info">
-              <div>${item.name}${optText}</div>
+              <div>${item.name}${optText}${item.ikram ? ' <span class="ikram-badge" style="background: var(--brand-gold); color: #000; padding: 2px 4px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-left: 5px;">İkram</span>' : ''}</div>
               ${noteHtml}
             </div>
           </div>
@@ -1262,8 +1346,8 @@ async function completeKitchenOrder(ticketId) {
 function groupOrderItems(items) {
   const map = new Map();
   items.forEach(item => {
-    // Birleştirme anahtarı: ad + seçenek + not (bunlar aynıysa aynı ürün sayılır)
-    const key = `${item.id || item.name}|${item.option || ''}|${item.note || ''}`;
+    // Birleştirme anahtarı: ad + seçenek + not + ikram (bunlar aynıysa aynı ürün sayılır)
+    const key = `${item.id || item.name}|${item.option || ''}|${item.note || ''}|${item.ikram ? 'ikram' : 'regular'}`;
     if (map.has(key)) {
       map.get(key).quantity += (item.quantity || 1);
     } else {
@@ -1283,10 +1367,10 @@ async function printPreBill() {
     return;
   }
 
-  const tableName = AppState.selectedTable ? AppState.selectedTable.name : 'Hızlı Satış';
+  const tableName = AppState.selectedTable ? (order.customLabel ? `${AppState.selectedTable.name} - ${order.customLabel}` : AppState.selectedTable.name) : 'Hızlı Satış';
   // Aynı ürünleri birleştir
   const groupedItems = groupOrderItems(order.items);
-  const subtotal = groupedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = groupedItems.reduce((sum, item) => sum + (item.ikram ? 0 : item.price * item.quantity), 0);
   const discountAmount = subtotal * ((order.discount || 0) / 100);
   const total = subtotal - discountAmount;
   const now = new Date().toISOString();
@@ -1414,7 +1498,7 @@ async function processPaymentAndPrint() {
   window.checkingOutTables = window.checkingOutTables || new Set();
   window.checkingOutTables.add(tableId);
 
-  const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = order.items.reduce((sum, item) => sum + (item.ikram ? 0 : item.price * item.quantity), 0);
   const discountAmount = subtotal * ((order.discount || 0) / 100);
   const subtotalWithDiscount = subtotal - discountAmount;
   const tax = 0;
@@ -1423,7 +1507,7 @@ async function processPaymentAndPrint() {
   const transaction = {
     id: 'TX-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
     tableId: tableId,
-    tableName: AppState.selectedTable ? AppState.selectedTable.name : 'Hızlı Satış',
+    tableName: AppState.selectedTable ? (order.customLabel ? `${AppState.selectedTable.name} - ${order.customLabel}` : AppState.selectedTable.name) : 'Hızlı Satış',
     items: [...order.items],
     subtotal: subtotal,
     tax: tax,
@@ -1528,11 +1612,12 @@ function localPrint(tx, type = 'receipt') {
     let itemLines = '';
     printTx.items.forEach(item => {
       const optText = item.option ? ` (${item.option})` : '';
+      const ikramText = item.ikram ? ' (İkram)' : '';
       const noteText = item.note ? `<div style="font-size: 11px; font-weight: bold; margin-left: 10px;">>> Not: ${item.note}</div>` : '';
       itemLines += `
         <div style="font-size: 14px; font-weight: bold; margin-bottom: 6px; border-bottom: 1px dashed #eee; padding-bottom: 4px; color: #000;">
           <div style="display: flex; justify-content: space-between;">
-            <span>${item.quantity}x ${item.name}${optText}</span>
+            <span>${item.quantity}x ${item.name}${optText}${ikramText}</span>
           </div>
           ${noteText}
         </div>
@@ -1560,10 +1645,12 @@ function localPrint(tx, type = 'receipt') {
     let itemLines = '';
     tx.items.forEach(item => {
       const optText = item.option ? ` (${item.option})` : '';
+      const ikramText = item.ikram ? ' (İkram)' : '';
+      const priceVal = item.ikram ? 0 : (item.price * item.quantity);
       itemLines += `
         <div style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size:12px; color:#000;">
-          <span>${item.quantity}x ${item.name}${optText}</span>
-          <span>${(item.price * item.quantity).toFixed(2)} ₺</span>
+          <span>${item.quantity}x ${item.name}${optText}${ikramText}</span>
+          <span>${priceVal.toFixed(2)} ₺</span>
         </div>
       `;
     });
@@ -1614,10 +1701,12 @@ function localPrint(tx, type = 'receipt') {
     let itemLines = '';
     tx.items.forEach(item => {
       const optText = item.option ? ` (${item.option})` : '';
+      const ikramText = item.ikram ? ' (İkram)' : '';
+      const priceVal = item.ikram ? 0 : (item.price * item.quantity);
       itemLines += `
         <div class="receipt-item-line" style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size:12px; color:#000;">
-          <span>${item.quantity}x ${item.name}${optText}</span>
-          <span>${(item.price * item.quantity).toFixed(2)} ₺</span>
+          <span>${item.quantity}x ${item.name}${optText}${ikramText}</span>
+          <span>${priceVal.toFixed(2)} ₺</span>
         </div>
       `;
     });
@@ -1778,10 +1867,12 @@ function generateReceiptHTML(tx) {
   let itemLines = '';
   printTx.items.forEach(item => {
     const optText = item.option ? ` (${item.option})` : '';
+    const ikramText = item.ikram ? ' (İkram)' : '';
+    const priceVal = item.ikram ? 0 : (item.price * item.quantity);
     itemLines += `
       <div class="receipt-item-line">
-        <span>${item.quantity}x ${item.name}${optText}</span>
-        <span>${(item.price * item.quantity).toFixed(2)} ₺</span>
+        <span>${item.quantity}x ${item.name}${optText}${ikramText}</span>
+        <span>${priceVal.toFixed(2)} ₺</span>
       </div>
     `;
   });
@@ -1873,12 +1964,13 @@ function openSplitBillModal() {
       const splitId = `split-${index}-${k}`;
       const itemRow = document.createElement('div');
       itemRow.className = 'split-item-row';
+      const displayPrice = item.ikram ? 0 : item.price;
       itemRow.innerHTML = `
         <div style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="${splitId}" class="split-checkbox" onchange="toggleSplitItem('${item.id}', ${item.price}, this.checked)">
-          <label for="${splitId}">${item.name} ${item.option ? '('+item.option+')' : ''}</label>
+          <input type="checkbox" id="${splitId}" class="split-checkbox" onchange="toggleSplitItem('${item.id}', ${displayPrice}, this.checked, ${!!item.ikram})">
+          <label for="${splitId}">${item.name} ${item.option ? '('+item.option+')' : ''}${item.ikram ? ' (İkram)' : ''}</label>
         </div>
-        <span>${item.price.toFixed(2)} ₺</span>
+        <span>${displayPrice.toFixed(2)} ₺</span>
       `;
       itemsListContainer.appendChild(itemRow);
     }
@@ -1887,11 +1979,11 @@ function openSplitBillModal() {
   document.getElementById('modal-split-bill').classList.add('active');
 }
 
-function toggleSplitItem(itemId, price, isChecked) {
+function toggleSplitItem(itemId, price, isChecked, ikram = false) {
   if (isChecked) {
-    AppState.selectedSplitItems.push({ itemId, price });
+    AppState.selectedSplitItems.push({ itemId, price, ikram });
   } else {
-    const idx = AppState.selectedSplitItems.findIndex(i => i.itemId === itemId && i.price === price);
+    const idx = AppState.selectedSplitItems.findIndex(i => i.itemId === itemId && i.price === price && !!i.ikram === !!ikram);
     if (idx !== -1) AppState.selectedSplitItems.splice(idx, 1);
   }
   
@@ -1933,7 +2025,7 @@ async function processSplitPayment() {
 
   // Seçilen kalemleri sepetten çıkart
   AppState.selectedSplitItems.forEach(splitItem => {
-    const itemIdx = order.items.findIndex(i => i.id === splitItem.itemId && i.quantity > 0);
+    const itemIdx = order.items.findIndex(i => i.id === splitItem.itemId && !!i.ikram === !!splitItem.ikram && i.quantity > 0);
     if (itemIdx !== -1) {
       order.items[itemIdx].quantity -= 1;
       if (order.items[itemIdx].quantity <= 0) {
@@ -1956,7 +2048,8 @@ async function processSplitPayment() {
         name: menuItem ? menuItem.name : 'Bilinmeyen Ürün',
         quantity: 1,
         price: i.price,
-        note: 'Parçalı Ödeme'
+        note: i.ikram ? 'İkram' : 'Parçalı Ödeme',
+        ikram: i.ikram
       };
     }),
     subtotal: subtotal,
@@ -2168,7 +2261,9 @@ function sendQRMenuOrder() {
       items: [],
       discount: 0,
       orderType: 'dine-in',
-      waiterId: 'garson' // QR siparişleri varsayılan olarak garsona atanır
+      waiterId: 'garson', // QR siparişleri varsayılan olarak garsona atanır
+      timestamp: new Date().toISOString(),
+      customLabel: ''
     };
   }
 
@@ -2194,7 +2289,7 @@ function sendQRMenuOrder() {
       const kitchenTicket = {
         id: 'K-QR-' + Math.random().toString(36).substr(2, 4).toUpperCase(),
         tableId: tableId,
-        tableName: table.name,
+        tableName: order.customLabel ? `${table.name} - ${order.customLabel}` : table.name,
         waiterId: 'QR Menü',
         timestamp: new Date().toISOString(),
         status: 'cooking',
@@ -2203,6 +2298,7 @@ function sendQRMenuOrder() {
           quantity: item.quantity,
           option: item.option,
           note: item.note,
+          ikram: !!item.ikram,
           cooked: false
         }))
       };

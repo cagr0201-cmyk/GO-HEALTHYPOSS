@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Go Healthy POS</title>
   <!-- CSS Dosyası -->
-  <link rel="stylesheet" href="styles.css?v=d0718e1b_v13">
+  <link rel="stylesheet" href="styles.css?v=d0718e1b_v14">
   <!-- PWA Manifest & Meta Tags -->
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -175,6 +175,12 @@
                 <button class="cart-type-btn" id="btn-takeaway" onclick="setOrderType('takeaway')">Paket Servis</button>
                 <button class="cart-type-btn" id="btn-delivery" onclick="setOrderType('delivery')">Adrese Gönder</button>
               </div>
+            </div>
+
+            <!-- Özel Masa İsmi Girişi -->
+            <div class="cart-custom-label-row" id="cart-custom-label-container" style="display: none;">
+              <span>Masa Adı:</span>
+              <input type="text" id="cart-custom-label-input" placeholder="Masa takma adı (Örn: Ahmet)..." oninput="updateCartCustomLabel(this.value)">
             </div>
 
             <!-- Sepetteki Ürünler -->
@@ -1040,8 +1046,8 @@
   <div id="print-receipt-section" style="display: none;"></div>
 
   <!-- UYGULAMA JS DOSYALARI -->
-  <script src="data.js?v=d0718e1b_v13"></script>
-  <script src="app.js?v=d0718e1b_v13"></script>
+  <script src="data.js?v=d0718e1b_v14"></script>
+  <script src="app.js?v=d0718e1b_v14"></script>
 
 </body>
 </html>

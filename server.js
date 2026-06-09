@@ -309,20 +309,22 @@ app.get('/api/state', async (req, res) => {
 
 // Create or update active order
 app.post('/api/orders', async (req, res) => {
-  const { tableId, items, discount, orderType, waiterId } = req.body;
+  const { tableId, items, discount, orderType, waiterId, timestamp, customLabel } = req.body;
   try {
     // 1. Verify and deduct stocks if new items are added
     // For simplicity, stock is deducted when orders are closed (paid) or sent to kitchen.
     // In our SQLite backend, we will persist this order.
     await db.run(
-      `INSERT INTO active_orders (tableId, items, discount, orderType, waiterId)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO active_orders (tableId, items, discount, orderType, waiterId, timestamp, customLabel)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(tableId) DO UPDATE SET
          items = excluded.items,
          discount = excluded.discount,
          orderType = excluded.orderType,
-         waiterId = excluded.waiterId`,
-      [tableId, JSON.stringify(items), discount, orderType, waiterId]
+         waiterId = excluded.waiterId,
+         timestamp = COALESCE(active_orders.timestamp, excluded.timestamp),
+         customLabel = excluded.customLabel`,
+      [tableId, JSON.stringify(items), discount, orderType, waiterId, timestamp || new Date().toISOString(), customLabel || null]
     );
 
     // Update table status in database
@@ -410,15 +412,20 @@ app.post('/api/orders/merge', async (req, res) => {
       }
     });
 
+    let timestamp = (targetOrderRow && targetOrderRow.timestamp) ? targetOrderRow.timestamp : ((sourceOrderRow && sourceOrderRow.timestamp) ? sourceOrderRow.timestamp : new Date().toISOString());
+    let customLabel = (targetOrderRow && targetOrderRow.customLabel) ? targetOrderRow.customLabel : ((sourceOrderRow && sourceOrderRow.customLabel) ? sourceOrderRow.customLabel : null);
+
     await db.run(
-      `INSERT INTO active_orders (tableId, items, discount, orderType, waiterId)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO active_orders (tableId, items, discount, orderType, waiterId, timestamp, customLabel)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(tableId) DO UPDATE SET
          items = excluded.items,
          discount = excluded.discount,
          orderType = excluded.orderType,
-         waiterId = excluded.waiterId`,
-      [targetTableId, JSON.stringify(targetItems), discount, orderType, waiterId]
+         waiterId = excluded.waiterId,
+         timestamp = excluded.timestamp,
+         customLabel = excluded.customLabel`,
+      [targetTableId, JSON.stringify(targetItems), discount, orderType, waiterId, timestamp, customLabel]
     );
 
     await db.run(`DELETE FROM active_orders WHERE tableId = ?`, [sourceTableId]);

@@ -2711,3 +2711,73 @@ button, input, select, textarea {
   }
 }
 
+/* --- ENHANCED POS & TABLE MAP TIMERS, ALIASES, TREATS --- */
+.table-timer {
+  display: block;
+  font-size: 10px;
+  color: var(--brand-gold);
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+  font-weight: 700;
+  border: 1px solid rgba(197, 160, 89, 0.3);
+}
+
+.cart-custom-label-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.cart-custom-label-row span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.cart-custom-label-row input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: var(--transition-fast);
+}
+
+.cart-custom-label-row input:focus {
+  outline: none;
+  border-color: var(--brand-gold);
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 4px rgba(197, 160, 89, 0.2);
+}
+
+.cart-item-ikram-btn {
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-item-ikram-btn:hover {
+  color: var(--brand-gold);
+  transform: scale(1.1);
+}
+
+.cart-item-ikram-btn.active {
+  color: var(--brand-gold);
+}
+
+.cart-item-ikram-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
