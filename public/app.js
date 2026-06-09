@@ -1706,6 +1706,9 @@ async function printReceipt(tx, type = 'receipt') {
 function localPrint(tx, type = 'receipt') {
   if (!isPrinterConnected()) return;
 
+  // Mutfak fişleri için tarayıcı yazdırma penceresi (window.print) açılmasın
+  if (type === 'kitchen') return;
+
   const printSection = document.getElementById('print-receipt-section');
   if (!printSection) return;
 
