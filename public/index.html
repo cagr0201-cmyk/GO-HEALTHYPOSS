@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Go Healthy POS</title>
   <!-- CSS Dosyası -->
-  <link rel="stylesheet" href="styles.css?v=d0718e1b_v15">
+  <link rel="stylesheet" href="styles.css?v=d0718e1b_v16">
   <!-- PWA Manifest & Meta Tags -->
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -547,6 +547,7 @@
                     <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px;"><span>Beklenen Kredi Kartı:</span><span id="c-exp-card">0.00 ₺</span></div>
                     <div style="display: flex; justify-content: space-between;"><span>Beklenen Yemek Kartı:</span><span id="c-exp-meal">0.00 ₺</span></div>
                     <div style="display: flex; justify-content: space-between;"><span>Beklenen Diğer:</span><span id="c-exp-other">0.00 ₺</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Toplam Ödenmez:</span><span id="c-exp-odenmez" style="color: var(--brand-gold);">0.00 ₺</span></div>
                   </div>
                 </div>
 
@@ -855,6 +856,10 @@
               <i data-lucide="more-horizontal" style="color: var(--accent-gold);"></i>
               <span>Diğer</span>
             </button>
+            <button class="pay-method-btn" id="method-odenmez" onclick="setPaymentMethod('ODENMEZ')">
+              <i data-lucide="gift" style="color: var(--brand-gold);"></i>
+              <span>Ödenmez</span>
+            </button>
           </div>
 
           <div id="cash-change-calculator">
@@ -927,7 +932,7 @@
         </div>
 
         <div class="options-group-title" style="margin-bottom: 6px;">Ödeme Yöntemi</div>
-        <div class="payment-methods-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
+        <div class="payment-methods-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px;">
           <button class="pay-method-btn selected" id="split-method-cash" onclick="setSplitPaymentMethod('CASH')">
             <i data-lucide="banknote" style="color: var(--status-free);"></i>
             <span>Nakit</span>
@@ -943,6 +948,10 @@
           <button class="pay-method-btn" id="split-method-other" onclick="setSplitPaymentMethod('OTHER')">
             <i data-lucide="more-horizontal" style="color: var(--accent-gold);"></i>
             <span>Diğer</span>
+          </button>
+          <button class="pay-method-btn" id="split-method-odenmez" onclick="setSplitPaymentMethod('ODENMEZ')">
+            <i data-lucide="gift" style="color: var(--brand-gold);"></i>
+            <span>Ödenmez</span>
           </button>
         </div>
 
@@ -1055,8 +1064,8 @@
   <div id="print-receipt-section" style="display: none;"></div>
 
   <!-- UYGULAMA JS DOSYALARI -->
-  <script src="data.js?v=d0718e1b_v15"></script>
-  <script src="app.js?v=d0718e1b_v15"></script>
+  <script src="data.js?v=d0718e1b_v16"></script>
+  <script src="app.js?v=d0718e1b_v16"></script>
 
 </body>
 </html>

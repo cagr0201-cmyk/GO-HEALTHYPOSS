@@ -1556,8 +1556,10 @@ function setPaymentMethod(method) {
   document.getElementById('method-card').classList.remove('selected');
   const methodMeal = document.getElementById('method-mealcard');
   const methodOther = document.getElementById('method-other');
+  const methodOdenmez = document.getElementById('method-odenmez');
   if (methodMeal) methodMeal.classList.remove('selected');
   if (methodOther) methodOther.classList.remove('selected');
+  if (methodOdenmez) methodOdenmez.classList.remove('selected');
 
   if (method === 'CASH') {
     document.getElementById('method-cash').classList.add('selected');
@@ -1570,6 +1572,9 @@ function setPaymentMethod(method) {
     document.getElementById('cash-change-calculator').style.display = 'none';
   } else if (method === 'OTHER') {
     if (methodOther) methodOther.classList.add('selected');
+    document.getElementById('cash-change-calculator').style.display = 'none';
+  } else if (method === 'ODENMEZ') {
+    if (methodOdenmez) methodOdenmez.classList.add('selected');
     document.getElementById('cash-change-calculator').style.display = 'none';
   }
 }
@@ -1832,7 +1837,7 @@ function localPrint(tx, type = 'receipt') {
       `;
     });
 
-    const payMap = { CASH: 'NAKİT', CARD: 'KREDİ KARTI', MEALCARD: 'YEMEK KARTI', OTHER: 'DİĞER' };
+    const payMap = { CASH: 'NAKİT', CARD: 'KREDİ KARTI', MEALCARD: 'YEMEK KARTI', OTHER: 'DİĞER', ODENMEZ: 'ÖDENMEZ' };
     const methodText = payMap[tx.paymentMethod] || 'NAKİT';
 
     printSection.innerHTML = `
@@ -2005,7 +2010,7 @@ function generateReceiptHTML(tx) {
     `;
   });
 
-  const payMap = { CASH: 'NAKİT', CARD: 'KREDİ KARTI', MEALCARD: 'YEMEK KARTI', OTHER: 'DİĞER' };
+  const payMap = { CASH: 'NAKİT', CARD: 'KREDİ KARTI', MEALCARD: 'YEMEK KARTI', OTHER: 'DİĞER', ODENMEZ: 'ÖDENMEZ' };
   const methodText = payMap[tx.paymentMethod] || 'NAKİT';
   
   receiptEl.innerHTML = `
@@ -2132,7 +2137,7 @@ function toggleSplitItem(itemId, price, isChecked, ikram = false) {
 function setSplitPaymentMethod(method) {
   AppState.activeSplitPaymentMethod = method;
   
-  const methods = ['CASH', 'CARD', 'MEALCARD', 'OTHER'];
+  const methods = ['CASH', 'CARD', 'MEALCARD', 'OTHER', 'ODENMEZ'];
   methods.forEach(m => {
     const btn = document.getElementById(`split-method-${m.toLowerCase()}`);
     if (btn) {
@@ -3443,7 +3448,8 @@ function renderPaymentMethodsTable(filteredSales) {
     'CASH': { name: 'Nakit', amount: 0, count: 0, color: 'var(--status-free)' },
     'CARD': { name: 'Kredi Kartı', amount: 0, count: 0, color: 'var(--accent-purple)' },
     'MEALCARD': { name: 'Yemek Kartı', amount: 0, count: 0, color: 'var(--accent-cyan)' },
-    'OTHER': { name: 'Diğer', amount: 0, count: 0, color: 'var(--status-bill)' }
+    'OTHER': { name: 'Diğer', amount: 0, count: 0, color: 'var(--status-bill)' },
+    'ODENMEZ': { name: 'Ödenmez', amount: 0, count: 0, color: 'var(--brand-gold)' }
   };
 
   filteredSales.forEach(tx => {
@@ -3531,7 +3537,7 @@ function renderLedgerTable() {
   }
 
   const typeMap = { 'dine-in': 'Masaya Servis', 'takeaway': 'Gel-Al', 'delivery': 'Adrese Paket' };
-  const payMap = { 'CASH': 'Nakit', 'CARD': 'Kredi Kartı', 'MEALCARD': 'Yemek Kartı', 'OTHER': 'Diğer' };
+  const payMap = { 'CASH': 'Nakit', 'CARD': 'Kredi Kartı', 'MEALCARD': 'Yemek Kartı', 'OTHER': 'Diğer', 'ODENMEZ': 'Ödenmez' };
 
   ledgerData.forEach(tx => {
     const tr = document.createElement('tr');
@@ -3588,8 +3594,8 @@ function openPaymentCorrectModal(txId, currentMethod) {
   const existingModal = document.getElementById('modal-payment-correct');
   if (existingModal) existingModal.remove();
 
-  const payMap = { 'CASH': 'Nakit', 'CARD': 'Kredi Kartı', 'MEALCARD': 'Yemek Kartı', 'OTHER': 'Diğer' };
-  const methods = ['CASH', 'CARD', 'MEALCARD', 'OTHER'];
+  const payMap = { 'CASH': 'Nakit', 'CARD': 'Kredi Kartı', 'MEALCARD': 'Yemek Kartı', 'OTHER': 'Diğer', 'ODENMEZ': 'Ödenmez' };
+  const methods = ['CASH', 'CARD', 'MEALCARD', 'OTHER', 'ODENMEZ'];
 
   const options = methods.map(m => `
     <button
@@ -3900,7 +3906,7 @@ function exportLedgerToCSV() {
   }
 
   const typeMap = { 'dine-in': 'Masaya Servis', 'takeaway': 'Gel-Al', 'delivery': 'Adrese Paket' };
-  const payMap = { 'CASH': 'Nakit', 'CARD': 'Kredi Kartı', 'MEALCARD': 'Yemek Kartı', 'OTHER': 'Diğer' };
+  const payMap = { 'CASH': 'Nakit', 'CARD': 'Kredi Kartı', 'MEALCARD': 'Yemek Kartı', 'OTHER': 'Diğer', 'ODENMEZ': 'Ödenmez' };
 
   let csvContent = "\ufeff"; // UTF-8 BOM for Excel
   csvContent += "Fiş / TX ID,Tarih & Saat,Masa / Kanal,Personel,Hizmet Tipi,Ödeme Tipi,İndirim %,Toplam Tutar\n";
@@ -4418,6 +4424,7 @@ function renderClosingsTab() {
   AppState.currentExpectedCardSales = activeSales.filter(tx => tx.paymentMethod === 'CARD').reduce((sum, tx) => sum + tx.total, 0);
   AppState.currentExpectedMealSales = activeSales.filter(tx => tx.paymentMethod === 'MEALCARD').reduce((sum, tx) => sum + tx.total, 0);
   AppState.currentExpectedOtherSales = activeSales.filter(tx => tx.paymentMethod === 'OTHER').reduce((sum, tx) => sum + tx.total, 0);
+  AppState.currentExpectedOdenmezSales = activeSales.filter(tx => tx.paymentMethod === 'ODENMEZ').reduce((sum, tx) => sum + tx.total, 0);
   AppState.currentExpectedCashExpenses = activeExpenses.reduce((sum, e) => sum + e.amount, 0);
   
   document.getElementById('c-exp-cash-sales').textContent = `${AppState.currentExpectedCashSales.toFixed(2)} ₺`;
@@ -4431,6 +4438,7 @@ function renderClosingsTab() {
   document.getElementById('c-exp-card').textContent = `${AppState.currentExpectedCardSales.toFixed(2)} ₺`;
   document.getElementById('c-exp-meal').textContent = `${AppState.currentExpectedMealSales.toFixed(2)} ₺`;
   document.getElementById('c-exp-other').textContent = `${AppState.currentExpectedOtherSales.toFixed(2)} ₺`;
+  document.getElementById('c-exp-odenmez').textContent = `${AppState.currentExpectedOdenmezSales.toFixed(2)} ₺`;
   
   calculateClosingDiscrepancies();
   renderClosingsList();
@@ -4484,7 +4492,7 @@ async function submitDailyClosing(event) {
   const notes = document.getElementById('c-notes').value.trim();
   
   const expCash = startingCash + AppState.currentExpectedCashSales - AppState.currentExpectedCashExpenses;
-  const totalRevenue = AppState.currentExpectedCashSales + AppState.currentExpectedCardSales + AppState.currentExpectedMealSales + AppState.currentExpectedOtherSales;
+  const totalRevenue = AppState.currentExpectedCashSales + AppState.currentExpectedCardSales + AppState.currentExpectedMealSales + AppState.currentExpectedOtherSales + AppState.currentExpectedOdenmezSales;
   const totalExpenses = AppState.currentExpectedCashExpenses;
   
   const closedBy = AppState.activeStaff ? AppState.activeStaff.name : 'Garson';

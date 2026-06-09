@@ -116,7 +116,7 @@ function buildKasaReceipt(tx) {
   const LF = '\n';
 
   const date = new Date(tx.timestamp).toLocaleString('tr-TR');
-  const payMap = { CASH: 'NAKİT', CARD: 'KREDİ KARTI', MEALCARD: 'YEMEK KARTI', OTHER: 'DİĞER' };
+  const payMap = { CASH: 'NAKİT', CARD: 'KREDİ KARTI', MEALCARD: 'YEMEK KARTI', OTHER: 'DİĞER', ODENMEZ: 'ÖDENMEZ' };
   const methodText = payMap[tx.paymentMethod] || 'NAKİT';
 
   let text = INIT + CENTER + BOLD_ON + 'Go Healthy THE KITCHEN' + BOLD_OFF + LF;
@@ -563,9 +563,9 @@ app.get('/api/reports', async (req, res) => {
 app.patch('/api/sales/:id/payment', async (req, res) => {
   const { id } = req.params;
   const { paymentMethod } = req.body;
-  const validMethods = ['CASH', 'CARD', 'MEALCARD', 'OTHER'];
+  const validMethods = ['CASH', 'CARD', 'MEALCARD', 'OTHER', 'ODENMEZ'];
   if (!validMethods.includes(paymentMethod)) {
-    return res.status(400).json({ error: 'Geçersiz ödeme yöntemi. Kabul edilen: CASH, CARD, MEALCARD, OTHER' });
+    return res.status(400).json({ error: 'Geçersiz ödeme yöntemi. Kabul edilen: CASH, CARD, MEALCARD, OTHER, ODENMEZ' });
   }
   try {
     const existing = await db.get(`SELECT id FROM sales_history WHERE id = ?`, [id]);
@@ -595,7 +595,7 @@ app.patch('/api/sales/:id', async (req, res) => {
     const params = [];
     
     if (paymentMethod !== undefined) {
-      const validMethods = ['CASH', 'CARD', 'MEALCARD', 'OTHER'];
+      const validMethods = ['CASH', 'CARD', 'MEALCARD', 'OTHER', 'ODENMEZ'];
       if (!validMethods.includes(paymentMethod)) {
         return res.status(400).json({ error: 'Geçersiz ödeme yöntemi.' });
       }

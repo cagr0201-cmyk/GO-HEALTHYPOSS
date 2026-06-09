@@ -248,6 +248,51 @@ async function main() {
     }
     console.log("✓ Test 5 Passed: Order notes are correctly merged!");
 
+    // Test 6: Checkout with payment method ODENMEZ
+    console.log("\n--- Test 6: Checking out table with payment method ODENMEZ ---");
+    const txOdenmezId = "TX-E2E-TEST-ODENMEZ";
+    const payOdenmezPayload = {
+      id: txOdenmezId,
+      tableId: "T3",
+      tableName: "Masa 3 - Elif",
+      items: [
+        { id: "item3", name: "Soda", price: 20, quantity: 1 },
+        { id: "item2", name: "Su", price: 15, quantity: 1 }
+      ],
+      subtotal: 35,
+      tax: 0,
+      discount: 0,
+      total: 35,
+      paymentMethod: "ODENMEZ",
+      orderType: "dine-in",
+      waiterId: "elif",
+      note: "Su ekstra sıcak olsun"
+    };
+
+    const payOdenmezRes = await fetch(`${BASE_URL}/api/orders/pay`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payOdenmezPayload)
+    });
+
+    if (payOdenmezRes.status !== 200) {
+      throw new Error(`POST /api/orders/pay failed for ODENMEZ with status ${payOdenmezRes.status}`);
+    }
+    console.log("✓ Payment with method ODENMEZ completed successfully.");
+
+    // Fetch reports to verify transaction paymentMethod
+    const reportsOdenmezRes = await fetch(`${BASE_URL}/api/reports`);
+    const reportsOdenmez = await reportsOdenmezRes.json();
+    const checkedOdenmezTx = reportsOdenmez.find(r => r.id === txOdenmezId);
+    if (!checkedOdenmezTx) {
+      throw new Error("Checkout transaction for ODENMEZ not found in sales history!");
+    }
+    console.log("✓ Retrieved transaction details from reports:", checkedOdenmezTx);
+    if (checkedOdenmezTx.paymentMethod !== "ODENMEZ") {
+      throw new Error(`Expected paymentMethod 'ODENMEZ', got '${checkedOdenmezTx.paymentMethod}'`);
+    }
+    console.log("✓ Test 6 Passed: Closed order with paymentMethod ODENMEZ successfully!");
+
     console.log("\n🎉 ALL NOTES AND CHECKOUT INTEGRATION TESTS PASSED SUCCESSFULLY!");
 
   } catch (err) {
