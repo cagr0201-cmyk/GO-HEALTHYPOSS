@@ -13,6 +13,18 @@ const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+
+// Prevent caching for sw.js, index.html and manifest.json so PWA updates trigger instantly
+app.use((req, res, next) => {
+  const p = req.path.toLowerCase();
+  if (p === '/sw.js' || p === '/index.html' || p === '/' || p === '/manifest.json') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // In-memory printer settings (persist across requests; reset on server restart)
