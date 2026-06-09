@@ -309,22 +309,23 @@ app.get('/api/state', async (req, res) => {
 
 // Create or update active order
 app.post('/api/orders', async (req, res) => {
-  const { tableId, items, discount, orderType, waiterId, timestamp, customLabel } = req.body;
+  const { tableId, items, discount, orderType, waiterId, timestamp, customLabel, note } = req.body;
   try {
     // 1. Verify and deduct stocks if new items are added
     // For simplicity, stock is deducted when orders are closed (paid) or sent to kitchen.
     // In our SQLite backend, we will persist this order.
     await db.run(
-      `INSERT INTO active_orders (tableId, items, discount, orderType, waiterId, timestamp, customLabel)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO active_orders (tableId, items, discount, orderType, waiterId, timestamp, customLabel, note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(tableId) DO UPDATE SET
          items = excluded.items,
          discount = excluded.discount,
          orderType = excluded.orderType,
          waiterId = excluded.waiterId,
          timestamp = COALESCE(active_orders.timestamp, excluded.timestamp),
-         customLabel = excluded.customLabel`,
-      [tableId, JSON.stringify(items), discount, orderType, waiterId, timestamp || new Date().toISOString(), customLabel || null]
+         customLabel = excluded.customLabel,
+         note = excluded.note`,
+      [tableId, JSON.stringify(items), discount, orderType, waiterId, timestamp || new Date().toISOString(), customLabel || null, note || null]
     );
 
     // Update table status in database
@@ -359,13 +360,13 @@ app.delete('/api/orders/:tableId', async (req, res) => {
 
 // Complete and Pay Order
 app.post('/api/orders/pay', async (req, res) => {
-  const { id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId } = req.body;
+  const { id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId, note } = req.body;
   try {
     // Save to sales history
     await db.run(
-      `INSERT INTO sales_history (id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId, timestamp)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, tableId, tableName, JSON.stringify(items), subtotal, tax, discount, total, paymentMethod, orderType, waiterId, new Date().toISOString()]
+      `INSERT INTO sales_history (id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId, timestamp, note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, tableId, tableName, JSON.stringify(items), subtotal, tax, discount, total, paymentMethod, orderType, waiterId, new Date().toISOString(), note || null]
     );
 
     // Clear active order and active kitchen orders for this table
@@ -414,18 +415,20 @@ app.post('/api/orders/merge', async (req, res) => {
 
     let timestamp = (targetOrderRow && targetOrderRow.timestamp) ? targetOrderRow.timestamp : ((sourceOrderRow && sourceOrderRow.timestamp) ? sourceOrderRow.timestamp : new Date().toISOString());
     let customLabel = (targetOrderRow && targetOrderRow.customLabel) ? targetOrderRow.customLabel : ((sourceOrderRow && sourceOrderRow.customLabel) ? sourceOrderRow.customLabel : null);
+    let note = (targetOrderRow && targetOrderRow.note) ? targetOrderRow.note : ((sourceOrderRow && sourceOrderRow.note) ? sourceOrderRow.note : null);
 
     await db.run(
-      `INSERT INTO active_orders (tableId, items, discount, orderType, waiterId, timestamp, customLabel)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO active_orders (tableId, items, discount, orderType, waiterId, timestamp, customLabel, note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(tableId) DO UPDATE SET
          items = excluded.items,
          discount = excluded.discount,
          orderType = excluded.orderType,
          waiterId = excluded.waiterId,
          timestamp = excluded.timestamp,
-         customLabel = excluded.customLabel`,
-      [targetTableId, JSON.stringify(targetItems), discount, orderType, waiterId, timestamp, customLabel]
+         customLabel = excluded.customLabel,
+         note = excluded.note`,
+      [targetTableId, JSON.stringify(targetItems), discount, orderType, waiterId, timestamp, customLabel, note]
     );
 
     await db.run(`DELETE FROM active_orders WHERE tableId = ?`, [sourceTableId]);
@@ -433,8 +436,12 @@ app.post('/api/orders/merge', async (req, res) => {
     const targetTable = await db.get(`SELECT name FROM tables WHERE id = ?`, [targetTableId]);
     const targetName = targetTable ? targetTable.name : targetTableId;
     await db.run(
-      `UPDATE kitchen_orders SET tableId = ?, tableName = ? WHERE tableId = ?`,
-      [targetTableId, targetName, sourceTableId]
+      `UPDATE kitchen_orders SET tableId = ?, tableName = ?, note = ? WHERE tableId = ?`,
+      [targetTableId, targetName, note, sourceTableId]
+    );
+    await db.run(
+      `UPDATE kitchen_orders SET note = ? WHERE tableId = ?`,
+      [note, targetTableId]
     );
 
     await db.run(`UPDATE tables SET status = 'free' WHERE id = ?`, [sourceTableId]);
@@ -453,12 +460,12 @@ app.post('/api/orders/merge', async (req, res) => {
 
 // Add kitchen KOT bilet
 app.post('/api/kitchen/ticket', async (req, res) => {
-  const { id, tableId, tableName, waiterId, items } = req.body;
+  const { id, tableId, tableName, waiterId, items, note } = req.body;
   try {
     await db.run(
-      `INSERT INTO kitchen_orders (id, tableId, tableName, waiterId, status, items, timestamp)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, tableId, tableName, waiterId, 'cooking', JSON.stringify(items), new Date().toISOString()]
+      `INSERT INTO kitchen_orders (id, tableId, tableName, waiterId, status, items, timestamp, note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, tableId, tableName, waiterId, 'cooking', JSON.stringify(items), new Date().toISOString(), note || null]
     );
     
     if (tableId !== 'quick') {

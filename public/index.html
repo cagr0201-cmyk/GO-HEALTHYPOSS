@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Go Healthy POS</title>
   <!-- CSS Dosyası -->
-  <link rel="stylesheet" href="styles.css?v=d0718e1b_v14">
+  <link rel="stylesheet" href="styles.css?v=d0718e1b_v15">
   <!-- PWA Manifest & Meta Tags -->
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -181,6 +181,12 @@
             <div class="cart-custom-label-row" id="cart-custom-label-container" style="display: none;">
               <span>Masa Adı:</span>
               <input type="text" id="cart-custom-label-input" placeholder="Masa takma adı (Örn: Ahmet)..." oninput="updateCartCustomLabel(this.value)">
+            </div>
+
+            <!-- Masa Sipariş Notu Girişi -->
+            <div class="cart-order-note-row" id="cart-order-note-container" style="display: none;">
+              <span>Masa Notu:</span>
+              <input type="text" id="cart-order-note-input" placeholder="Sipariş genel notu (Örn: Cam kenarı)..." oninput="updateCartOrderNote(this.value)">
             </div>
 
             <!-- Sepetteki Ürünler -->
@@ -866,6 +872,9 @@
               <span>Para Üstü:</span>
               <span class="change-value" id="change-due-value">0.00 ₺</span>
             </div>
+          <div style="margin-top: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+            <input type="checkbox" id="checkout-print-receipt" checked style="width: 16px; height: 16px; accent-color: var(--brand-gold); cursor: pointer;">
+            <label for="checkout-print-receipt" style="cursor: pointer; user-select: none;">Ödeme sonrası fiş ekranını göster</label>
           </div>
 
           <div class="modal-actions" style="margin-top: 10px;">
@@ -1046,8 +1055,8 @@
   <div id="print-receipt-section" style="display: none;"></div>
 
   <!-- UYGULAMA JS DOSYALARI -->
-  <script src="data.js?v=d0718e1b_v14"></script>
-  <script src="app.js?v=d0718e1b_v14"></script>
+  <script src="data.js?v=d0718e1b_v15"></script>
+  <script src="app.js?v=d0718e1b_v15"></script>
 
 </body>
 </html>

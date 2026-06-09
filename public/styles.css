@@ -2781,3 +2781,37 @@ button, input, select, textarea {
   height: 16px;
 }
 
+.cart-order-note-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.cart-order-note-row span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.cart-order-note-row input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: var(--transition-fast);
+}
+
+.cart-order-note-row input:focus {
+  outline: none;
+  border-color: var(--brand-gold);
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 4px rgba(197, 160, 89, 0.2);
+}
+

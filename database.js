@@ -196,6 +196,22 @@ async function initDatabase() {
     timestamp TEXT
   )`);
 
+  try {
+    await run(`ALTER TABLE active_orders ADD COLUMN note TEXT`);
+  } catch (err) {
+    // Column might already exist
+  }
+  try {
+    await run(`ALTER TABLE sales_history ADD COLUMN note TEXT`);
+  } catch (err) {
+    // Column might already exist
+  }
+  try {
+    await run(`ALTER TABLE kitchen_orders ADD COLUMN note TEXT`);
+  } catch (err) {
+    // Column might already exist
+  }
+
   await run(`CREATE TABLE IF NOT EXISTS daily_closings (
     id TEXT PRIMARY KEY,
     timestamp TEXT,
@@ -1020,7 +1036,8 @@ async function getAppState() {
       orderType: a.orderType,
       waiterId: a.waiterId,
       timestamp: a.timestamp || null,
-      customLabel: a.customLabel || null
+      customLabel: a.customLabel || null,
+      note: a.note || null
     };
   });
 

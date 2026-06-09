@@ -211,7 +211,8 @@ async function saveActiveOrderToServer(tableId) {
           orderType: order.orderType,
           waiterId: order.waiterId,
           timestamp: order.timestamp,
-          customLabel: order.customLabel
+          customLabel: order.customLabel,
+          note: order.note
         })
       });
     }
@@ -707,6 +708,20 @@ function renderCart() {
     }
   }
 
+  const noteContainer = document.getElementById('cart-order-note-container');
+  const noteInput = document.getElementById('cart-order-note-input');
+  if (noteContainer && noteInput) {
+    if (AppState.selectedTable) {
+      noteContainer.style.display = 'flex';
+      const order = AppState.activeOrders[tableId];
+      if (document.activeElement !== noteInput) {
+        noteInput.value = order ? (order.note || '') : '';
+      }
+    } else {
+      noteContainer.style.display = 'none';
+    }
+  }
+
   let activeOrder = AppState.activeOrders[tableId];
   
   if (!activeOrder || !activeOrder.items || activeOrder.items.length === 0) {
@@ -817,10 +832,29 @@ function updateCartCustomLabel(value) {
       orderType: 'dine-in',
       waiterId: document.getElementById('cart-waiter-select').value || 'garson',
       timestamp: new Date().toISOString(),
-      customLabel: ''
+      customLabel: '',
+      note: ''
     };
   }
   AppState.activeOrders[tableId].customLabel = value;
+  saveActiveOrderToServer(tableId);
+}
+
+function updateCartOrderNote(value) {
+  if (!AppState.selectedTable) return;
+  const tableId = AppState.selectedTable.id;
+  if (!AppState.activeOrders[tableId]) {
+    AppState.activeOrders[tableId] = {
+      items: [],
+      discount: 0,
+      orderType: 'dine-in',
+      waiterId: document.getElementById('cart-waiter-select').value || 'garson',
+      timestamp: new Date().toISOString(),
+      customLabel: '',
+      note: ''
+    };
+  }
+  AppState.activeOrders[tableId].note = value;
   saveActiveOrderToServer(tableId);
 }
 
@@ -854,7 +888,8 @@ async function handleAddItemToCart(itemId) {
       orderType: 'dine-in',
       waiterId: document.getElementById('cart-waiter-select').value || 'garson',
       timestamp: new Date().toISOString(),
-      customLabel: ''
+      customLabel: '',
+      note: ''
     };
   }
 
@@ -1102,6 +1137,7 @@ async function sendActiveOrderToKitchen() {
     waiterId: order.waiterId,
     timestamp: new Date().toISOString(),
     status: 'cooking',
+    note: order.note || null,
     items: groupedUnsentItems.map(item => ({
       id: item.id,
       name: item.name,
@@ -1277,6 +1313,7 @@ function renderKitchenMonitor() {
         <span>Bilet: ${ticket.id}</span>
         <span>Garson: ${ticket.waiterId.toUpperCase()}</span>
       </div>
+      ${ticket.note ? `<div style="background: rgba(197, 160, 89, 0.15); border-left: 3px solid var(--brand-gold); padding: 6px 10px; font-size: 12px; margin: 8px; border-radius: 4px; color: #fff; font-weight: 600;">Not: ${ticket.note}</div>` : ''}
       <div class="kitchen-items-list">
         ${itemRows}
       </div>
@@ -1516,7 +1553,8 @@ async function processPaymentAndPrint() {
     paymentMethod: AppState.activePaymentMethod,
     orderType: order.orderType || 'dine-in',
     waiterId: order.waiterId,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    note: order.note || null
   };
 
   try {
@@ -1533,8 +1571,18 @@ async function processPaymentAndPrint() {
         if (table) table.status = 'free';
       }
       closeModal('modal-checkout');
-      generateReceiptHTML(transaction);
-      document.getElementById('modal-receipt').classList.add('active');
+      
+      const printReceiptToggle = document.getElementById('checkout-print-receipt');
+      const shouldPrint = printReceiptToggle ? printReceiptToggle.checked : true;
+      
+      if (shouldPrint) {
+        generateReceiptHTML(transaction);
+        document.getElementById('modal-receipt').classList.add('active');
+      } else {
+        AppState.selectedTable = null;
+        renderCart();
+        switchScreen('tables');
+      }
       showToast('Ödeme başarıyla alındı ve adisyon kapatıldı.', 'success');
     }
   } catch (err) {
@@ -1632,6 +1680,11 @@ function localPrint(tx, type = 'receipt') {
         <div style="font-size: 12px; margin-bottom: 4px; color:#000;"><strong>Masa/Bölüm:</strong> ${printTx.tableName}</div>
         <div style="font-size: 12px; margin-bottom: 4px; color:#000;"><strong>Garson:</strong> ${printTx.waiterId ? printTx.waiterId.toUpperCase() : 'BİLİNMİYOR'}</div>
         <div style="font-size: 10px; margin-bottom: 10px; color:#000;"><strong>Tarih:</strong> ${dateStr}</div>
+        ${printTx.note ? `
+        <div style="font-size: 13px; font-weight: bold; margin-bottom: 10px; border: 1.5px solid #000; padding: 6px; color:#000; word-wrap: break-word; text-transform: uppercase;">
+          MASA NOTU: ${printTx.note}
+        </div>
+        ` : ''}
         <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 8px 0; margin-bottom: 10px;">
           ${itemLines}
         </div>
@@ -1676,6 +1729,12 @@ function localPrint(tx, type = 'receipt') {
         <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
           <span>Personel:</span><span>${tx.waiterId ? tx.waiterId.toUpperCase() : ''}</span>
         </div>
+        ${tx.note ? `
+        <div style="border-top:1px dashed #000; margin: 4px 0 0 0;"></div>
+        <div style="font-size:11px; font-weight:bold; color:#000; margin-top: 4px; word-wrap: break-word;">
+          Not: ${tx.note}
+        </div>
+        ` : ''}
         <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
         <div>${itemLines}</div>
         <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
@@ -1739,6 +1798,13 @@ function localPrint(tx, type = 'receipt') {
           <span>Personel:</span>
           <span>${tx.waiterId ? tx.waiterId.toUpperCase() : ''}</span>
         </div>
+        ${tx.note ? `
+        <div style="border-top:1px dashed #000; margin: 4px 0 0 0;"></div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:bold; color:#000; margin-top: 4px; word-wrap: break-word;">
+          <span>Not:</span>
+          <span>${tx.note}</span>
+        </div>
+        ` : ''}
         <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
         <div class="receipt-items">
           ${itemLines}
@@ -1904,6 +1970,13 @@ function generateReceiptHTML(tx) {
       <span>Personel:</span>
       <span>${tx.waiterId.toUpperCase()}</span>
     </div>
+    ${tx.note ? `
+    <div class="receipt-divider"></div>
+    <div class="receipt-info-row" style="font-weight:bold; color: var(--brand-gold);">
+      <span>Not:</span>
+      <span>${tx.note}</span>
+    </div>
+    ` : ''}
     <div class="receipt-divider"></div>
     <div class="receipt-items">
       ${itemLines}
@@ -2263,7 +2336,8 @@ function sendQRMenuOrder() {
       orderType: 'dine-in',
       waiterId: 'garson', // QR siparişleri varsayılan olarak garsona atanır
       timestamp: new Date().toISOString(),
-      customLabel: ''
+      customLabel: '',
+      note: ''
     };
   }
 
@@ -2293,6 +2367,7 @@ function sendQRMenuOrder() {
         waiterId: 'QR Menü',
         timestamp: new Date().toISOString(),
         status: 'cooking',
+        note: order.note || null,
         items: unsentItems.map(item => ({
           name: item.name,
           quantity: item.quantity,
