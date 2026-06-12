@@ -31,7 +31,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 // For production use, these can be loaded from an env var or a JSON file
 let printerSettings = {
   kasaIp: process.env.PRINTER_KASA_IP || '',
+  kasaPort: parseInt(process.env.PRINTER_KASA_PORT) || 9100,
   mutfakIp: process.env.PRINTER_MUTFAK_IP || '',
+  mutfakPort: parseInt(process.env.PRINTER_MUTFAK_PORT) || 9100,
   enabled: false
 };
 
@@ -59,18 +61,48 @@ const DRINK_CATEGORY_IDS = new Set([
 ]);
 
 // Helper: Send raw ESC/POS text to a TCP printer over IP:port
+// ESC/POS yazıcılar veri aldıktan sonra TCP bağlantısını kapatmaz,
+// bu yüzden veriyi gönderdikten sonra bağlantıyı biz zorla kapatıyoruz.
 function sendToPrinter(ip, port = 9100, data) {
   return new Promise((resolve, reject) => {
     const client = new net.Socket();
-    const timeout = 5000;
-    client.setTimeout(timeout);
+    const CONNECT_TIMEOUT = 8000;
+    let resolved = false;
+
+    const done = (err) => {
+      if (resolved) return;
+      resolved = true;
+      client.destroy();
+      if (err) reject(err);
+      else resolve(true);
+    };
+
+    client.setTimeout(CONNECT_TIMEOUT);
+
     client.connect(port, ip, () => {
-      client.write(data, 'binary');
-      client.end();
+      // Bağlantı kuruldu — veriyi gönder
+      const buf = Buffer.from(data, 'binary');
+      client.write(buf, () => {
+        // Veri yazıldı — 500ms bekleyip bağlantıyı kapat
+        // (yazıcının veriyi işlemesi için kısa süre bırak)
+        setTimeout(() => done(null), 500);
+      });
     });
-    client.on('close', () => resolve(true));
-    client.on('timeout', () => { client.destroy(); reject(new Error('Printer timeout')); });
-    client.on('error', (err) => reject(err));
+
+    client.on('timeout', () => {
+      done(new Error(`Zaman aşımı — Yazıcı ${ip}:${port} bağlantıyı kabul etmedi`));
+    });
+
+    client.on('error', (err) => {
+      const code = err.code || '';
+      let msg = `Bağlantı hatası (${ip}:${port}): `;
+      if (code === 'ECONNREFUSED') msg += 'Port kapalı veya yazıcı hazır değil';
+      else if (code === 'EHOSTUNREACH') msg += 'Yazıcıya ulaşılamıyor (farklı ağ?)';
+      else if (code === 'ETIMEDOUT') msg += 'Bağlantı zaman aşımı';
+      else if (code === 'ENETUNREACH') msg += 'Ağa ulaşılamıyor';
+      else msg += err.message;
+      done(new Error(msg));
+    });
   });
 }
 
@@ -938,11 +970,11 @@ app.post('/api/print', async (req, res) => {
         const printPromises = [];
         if (foodItems.length > 0 && printerSettings.mutfakIp) {
           const ticket = buildKitchenTicket({ ...tx, items: foodItems });
-          printPromises.push(sendToPrinter(printerSettings.mutfakIp, 9100, ticket));
+          printPromises.push(sendToPrinter(printerSettings.mutfakIp, printerSettings.mutfakPort || 9100, ticket));
         }
         if (drinkItems.length > 0 && printerSettings.kasaIp) {
           const ticket = buildDrinkTicket({ ...tx, items: drinkItems }, drinkItems);
-          printPromises.push(sendToPrinter(printerSettings.kasaIp, 9100, ticket));
+          printPromises.push(sendToPrinter(printerSettings.kasaIp, printerSettings.kasaPort || 9100, ticket));
         }
 
         await Promise.all(printPromises);
@@ -952,18 +984,18 @@ app.post('/api/print', async (req, res) => {
       } else if (type === 'receipt' && printerSettings.kasaIp) {
         // Receipt always goes to kasa printer
         const receipt = buildKasaReceipt(tx);
-        await sendToPrinter(printerSettings.kasaIp, 9100, receipt);
+        await sendToPrinter(printerSettings.kasaIp, printerSettings.kasaPort || 9100, receipt);
         return res.json({ success: true, printedDirectly: true });
 
       } else if (type === 'prebill' && printerSettings.kasaIp) {
         // Adisyon (pre-bill) — kasa yazıcısına gider, masa kapatılmaz
         const prebill = buildPreBill(tx);
-        await sendToPrinter(printerSettings.kasaIp, 9100, prebill);
+        await sendToPrinter(printerSettings.kasaIp, printerSettings.kasaPort || 9100, prebill);
         return res.json({ success: true, printedDirectly: true });
       } else if (type === 'zreport' && printerSettings.kasaIp) {
         // Z Raporu (kasa kapatma) — kasa yazıcısına gider
         const zreport = buildZReport(tx);
-        await sendToPrinter(printerSettings.kasaIp, 9100, zreport);
+        await sendToPrinter(printerSettings.kasaIp, printerSettings.kasaPort || 9100, zreport);
         return res.json({ success: true, printedDirectly: true });
       }
     } catch (err) {
@@ -984,9 +1016,11 @@ app.get('/api/settings/printers', (req, res) => {
 
 // Printer settings SAVE
 app.post('/api/settings/printers', async (req, res) => {
-  const { kasaIp, mutfakIp, enabled } = req.body;
+  const { kasaIp, kasaPort, mutfakIp, mutfakPort, enabled } = req.body;
   printerSettings.kasaIp = (kasaIp || '').trim();
+  printerSettings.kasaPort = parseInt(kasaPort) || 9100;
   printerSettings.mutfakIp = (mutfakIp || '').trim();
+  printerSettings.mutfakPort = parseInt(mutfakPort) || 9100;
   printerSettings.enabled = !!enabled;
   console.log('Printer settings updated:', printerSettings);
   try {
@@ -999,23 +1033,38 @@ app.post('/api/settings/printers', async (req, res) => {
 
 // Printer connection test
 app.post('/api/settings/printers/test', async (req, res) => {
-  const { kasaIp, mutfakIp } = req.body;
+  const { kasaIp, kasaPort, mutfakIp, mutfakPort } = req.body;
   const results = [];
 
-  async function testOne(label, ip) {
-    if (!ip) return;
+  async function testOne(label, ip, port) {
+    if (!ip || !ip.trim()) return;
+    const p = parseInt(port) || 9100;
     try {
-      await sendToPrinter(ip, 9100, '\x1b@Test: ' + label + ' baglantisi basarili!\n\n\n\x1dV\x41\x00');
-      results.push({ label, ip, ok: true });
+      const ESC = '\x1b';
+      const testMsg = ESC + '@' + ESC + 'a\x01' + ESC + 'E\x01' +
+        'TEST YAZICISI\n' + ESC + 'E\x00' + ESC + 'a\x00' +
+        label + ' baglantisi basarili!\n' +
+        'IP: ' + ip + ' Port: ' + p + '\n\n\n' + '\x1dV\x41\x00';
+      await sendToPrinter(ip.trim(), p, testMsg);
+      results.push({ label, ip, port: p, ok: true });
     } catch (err) {
-      results.push({ label, ip, ok: false, error: err.message });
+      results.push({ label, ip, port: p, ok: false, error: err.message });
     }
   }
 
-  await Promise.all([testOne('Kasa Yazıcısı', kasaIp), testOne('Mutfak Yazıcısı', mutfakIp)]);
+  await Promise.all([
+    testOne('Kasa Yazıcısı', kasaIp, kasaPort),
+    testOne('Mutfak Yazıcısı', mutfakIp, mutfakPort)
+  ]);
+
+  if (results.length === 0) {
+    return res.json({ success: false, message: 'Test edilecek yazıcı IP adresi girilmedi.' });
+  }
 
   const allOk = results.every(r => r.ok);
-  const message = results.map(r => `${r.label} (${r.ip}): ${r.ok ? '✅ BAĞLANDI' : '❌ BAĞLANAMADI - ' + r.error}`).join(' | ');
+  const message = results.map(r =>
+    `${r.label} (${r.ip}:${r.port}): ${r.ok ? '✅ BAĞLANDI' : '❌ BAĞLANAMADI — ' + r.error}`
+  ).join('\n');
   res.json({ success: allOk, message });
 });
 
@@ -1037,7 +1086,9 @@ db.initDatabase()
       if (savedPrinters) {
         printerSettings = {
           kasaIp: savedPrinters.kasaIp || '',
+          kasaPort: parseInt(savedPrinters.kasaPort) || 9100,
           mutfakIp: savedPrinters.mutfakIp || '',
+          mutfakPort: parseInt(savedPrinters.mutfakPort) || 9100,
           enabled: !!savedPrinters.enabled
         };
         console.log('Loaded printer settings from database:', printerSettings);
