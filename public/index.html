@@ -4,8 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Go Healthy POS</title>
+  <script>
+    // Force clear PWA cache on version change
+    const CACHE_VERSION = 'v20';
+    if (localStorage.getItem('app_cache_version') !== CACHE_VERSION) {
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          for (let name of names) caches.delete(name);
+        });
+      }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          for (let reg of regs) reg.unregister();
+        });
+      }
+      localStorage.setItem('app_cache_version', CACHE_VERSION);
+      setTimeout(() => { window.location.reload(true); }, 300);
+    }
+  </script>
   <!-- CSS Dosyası -->
-  <link rel="stylesheet" href="styles.css?v=d0718e1b_v18">
+  <link rel="stylesheet" href="styles.css?v=d0718e1b_v20">
   <!-- PWA Manifest & Meta Tags -->
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -196,45 +214,44 @@
 
             <!-- Toplam Bilgiler ve Hesaplama -->
             <div class="cart-summary">
-              <div class="staff-selector-row">
-                <span>Hizmet Veren Garson:</span>
-                <select class="staff-select" id="cart-waiter-select">
-                  <!-- JS ile garsonlar listelenecek -->
-                </select>
-              </div>
-              <div class="summary-line">
-                <span>Ara Toplam</span>
-                <span id="summary-subtotal">0.00 ₺</span>
-              </div>
-              <div class="summary-line discount">
-                <span>İndirim</span>
-                <div style="display: flex; align-items: center; gap: 4px;">
-                  <input type="number" id="summary-discount-input" value="0" min="0" style="width: 55px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); border-radius: 4px; padding: 2px 4px; text-align: center;" onchange="recalculateTotals()">
-                  <select id="discount-type-select" onchange="recalculateTotals()">
-                    <option value="percent">%</option>
-                    <option value="amount">₺</option>
-                  </select>
+              <div class="summary-col-left">
+                <div class="summary-line">
+                  <span>Ara Toplam:</span>
+                  <span id="summary-subtotal">0.00 ₺</span>
+                </div>
+                <div class="summary-line discount">
+                  <span>İndirim:</span>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <input type="number" id="summary-discount-input" value="0" min="0" style="width: 48px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); border-radius: 4px; padding: 2px; text-align: center; color: white;" onchange="recalculateTotals()">
+                    <select id="discount-type-select" onchange="recalculateTotals()">
+                      <option value="percent">%</option>
+                      <option value="amount">₺</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-              <div class="summary-line" style="display: none;">
-                <span>KDV (%10)</span>
-                <span id="summary-tax">0.00 ₺</span>
+              
+              <div class="summary-col-right">
+                <div class="staff-selector-row" style="display: none;">
+                  <span>Garson:</span>
+                  <select class="staff-select" id="cart-waiter-select">
+                    <!-- JS ile garsonlar listelenecek -->
+                  </select>
+                </div>
+                <div class="summary-line total">
+                  <span>Toplam:</span>
+                  <span class="total-price" id="summary-total">0.00 ₺</span>
+                </div>
               </div>
-              <div class="summary-line total">
-                <span>Genel Toplam</span>
-                <span class="total-price" id="summary-total">0.00 ₺</span>
-              </div>
+              <!-- Hidden Tax line to keep JS happy -->
+              <span id="summary-tax" style="display: none;">0.00 ₺</span>
             </div>
 
-            <!-- Onayla & Geri Dön Butonu -->
-            <div style="padding: 12px 16px 0 16px; border-top: 1px solid var(--border-light); background: rgba(255, 255, 255, 0.02);">
+            <!-- Sipariş / Ödeme Aksiyon Butonları (Unified Grid) -->
+            <div class="cart-actions-unified">
               <button class="cart-btn cart-btn-confirm-return" id="btn-confirm-return" onclick="confirmOrderAndReturn()">
                 <i data-lucide="check-circle"></i> Siparişi Onayla & Masalara Dön
               </button>
-            </div>
-
-            <!-- Sipariş / Ödeme Aksiyon Butonları -->
-            <div class="cart-actions" style="border-top: none;">
               <button class="cart-btn cart-btn-kitchen" id="btn-send-kitchen" onclick="sendActiveOrderToKitchen()">
                 <i data-lucide="chef-hat"></i> Mutfak
               </button>
@@ -244,9 +261,6 @@
               <button class="cart-btn cart-btn-pay" id="btn-checkout" onclick="openCheckoutModal()">
                 <i data-lucide="credit-card"></i> Ödeme Al
               </button>
-            </div>
-            
-            <div class="cart-actions-bottom-row">
               <button class="cart-btn cart-btn-split" id="btn-split-bill" onclick="openSplitBillModal()">
                 <i data-lucide="scissors"></i> Böl
               </button>
@@ -254,7 +268,7 @@
                 <i data-lucide="git-merge"></i> Birleştir
               </button>
               <button class="cart-btn cart-btn-cancel-order" id="btn-cancel-order" onclick="cancelActiveOrder()" title="Adisyonu tamamen iptal et ve masayı boşalt">
-                <i data-lucide="trash-2"></i> İptal Et
+                <i data-lucide="trash-2"></i> İptal
               </button>
             </div>
 

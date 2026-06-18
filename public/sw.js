@@ -1,8 +1,8 @@
-const CACHE_NAME = 'go-healthy-pos-v18';
+const CACHE_NAME = 'go-healthy-pos-v20';
 const ASSETS = [
   '/',
   '/index.html',
-  '/styles.css?v=d0718e1b_v18',
+  '/styles.css?v=d0718e1b_v20',
   '/app.js?v=d0718e1b_v18',
   '/data.js?v=d0718e1b_v18'
 ];
