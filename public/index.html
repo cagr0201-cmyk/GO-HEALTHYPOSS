@@ -6,7 +6,7 @@
   <title>Go Healthy POS</title>
   <script>
     // Force clear PWA cache on version change
-    const CACHE_VERSION = 'v22';
+    const CACHE_VERSION = 'v23';
     if (localStorage.getItem('app_cache_version') !== CACHE_VERSION) {
       if ('caches' in window) {
         caches.keys().then(names => {
@@ -23,7 +23,7 @@
     }
   </script>
   <!-- CSS Dosyası -->
-  <link rel="stylesheet" href="styles.css?v=d0718e1b_v22">
+  <link rel="stylesheet" href="styles.css?v=d0718e1b_v23">
   <!-- PWA Manifest & Meta Tags -->
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -875,7 +875,42 @@
               <i data-lucide="gift" style="color: var(--brand-gold);"></i>
               <span>Ödenmez</span>
             </button>
+            <button class="pay-method-btn" id="method-split" onclick="setPaymentMethod('SPLIT')">
+              <i data-lucide="split" style="color: var(--accent-pink);"></i>
+              <span>Parçalı</span>
+            </button>
           </div>
+
+          <div id="split-payment-calculator" style="display: none; margin-top: 14px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-light); border-radius: 14px; padding: 14px;">
+            <div class="options-group-title" style="margin-top: 0; margin-bottom: 10px;">Ödeme Dağılımı</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 11px; color: var(--text-secondary);">Nakit (₺):</label>
+                <input type="number" id="split-pay-cash" value="0" min="0" step="any" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); border-radius: 8px; padding: 6px; color: white; text-align: center; width: 100%; box-sizing: border-box;" oninput="calculateSplitPaymentSummary()">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 11px; color: var(--text-secondary);">Kredi Kartı (₺):</label>
+                <input type="number" id="split-pay-card" value="0" min="0" step="any" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); border-radius: 8px; padding: 6px; color: white; text-align: center; width: 100%; box-sizing: border-box;" oninput="calculateSplitPaymentSummary()">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 11px; color: var(--text-secondary);">Yemek Kartı (₺):</label>
+                <input type="number" id="split-pay-mealcard" value="0" min="0" step="any" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); border-radius: 8px; padding: 6px; color: white; text-align: center; width: 100%; box-sizing: border-box;" oninput="calculateSplitPaymentSummary()">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 11px; color: var(--text-secondary);">Diğer (₺):</label>
+                <input type="number" id="split-pay-other" value="0" min="0" step="any" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); border-radius: 8px; padding: 6px; color: white; text-align: center; width: 100%; box-sizing: border-box;" oninput="calculateSplitPaymentSummary()">
+              </div>
+            </div>
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px; border-top: 1px dashed var(--border-light); padding-top: 10px;">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary);">
+                <span>Toplam Ödenen:</span>
+                <span id="split-total-paid" style="font-weight: bold; color: white;">0.00 ₺</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                <span>Kalan Tutar:</span>
+                <span id="split-remaining-due" style="font-weight: bold; color: var(--accent-pink);">0.00 ₺</span>
+              </div>
+            </div>
 
           <div id="cash-change-calculator">
             <div class="options-group-title">Hızlı Nakit Seçenekleri</div>
@@ -1081,8 +1116,8 @@
   <div id="print-receipt-section" style="display: none;"></div>
 
   <!-- UYGULAMA JS DOSYALARI -->
-  <script src="data.js?v=d0718e1b_v22"></script>
-  <script src="app.js?v=d0718e1b_v22"></script>
+  <script src="data.js?v=d0718e1b_v23"></script>
+  <script src="app.js?v=d0718e1b_v23"></script>
 
 </body>
 </html>

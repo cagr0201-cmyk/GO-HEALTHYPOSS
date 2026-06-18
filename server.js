@@ -161,7 +161,7 @@ function buildKasaReceipt(tx) {
 
   const date = new Date(tx.timestamp).toLocaleString('tr-TR');
   const payMap = { CASH: 'NAKİT', CARD: 'KREDİ KARTI', MEALCARD: 'YEMEK KARTI', OTHER: 'DİĞER', ODENMEZ: 'ÖDENMEZ' };
-  const methodText = payMap[tx.paymentMethod] || 'NAKİT';
+  const methodText = payMap[tx.paymentMethod] || tx.paymentMethod || 'NAKİT';
 
   let text = INIT + CENTER + BOLD_ON + 'Go Healthy THE KITCHEN' + BOLD_OFF + LF;
   text += 'Saray Mah. Macaroglu Sok. 4B / ALANYA' + LF;
@@ -405,22 +405,45 @@ app.delete('/api/orders/:tableId', async (req, res) => {
 
 // Complete and Pay Order
 app.post('/api/orders/pay', async (req, res) => {
-  const { id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId, note } = req.body;
+  const { isSplit, transactions, tableId: splitTableId } = req.body;
   try {
-    // Save to sales history
-    await db.run(
-      `INSERT INTO sales_history (id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId, timestamp, note)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, tableId, tableName, JSON.stringify(items), subtotal, tax, discount, total, paymentMethod, orderType, waiterId, new Date().toISOString(), note || null]
-    );
+    if (isSplit && Array.isArray(transactions)) {
+      // Loop and save each transaction
+      for (const tx of transactions) {
+        const { id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId, note } = tx;
+        await db.run(
+          `INSERT INTO sales_history (id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId, timestamp, note)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, tableId, tableName, JSON.stringify(items), subtotal, tax, discount, total, paymentMethod, orderType, waiterId, new Date().toISOString(), note || null]
+        );
+      }
+      
+      const clearTableId = splitTableId || transactions[0].tableId;
+      // Clear active order and active kitchen orders for this table once
+      await db.run(`DELETE FROM active_orders WHERE tableId = ?`, [clearTableId]);
+      await db.run(`DELETE FROM kitchen_orders WHERE tableId = ?`, [clearTableId]);
 
-    // Clear active order and active kitchen orders for this table
-    await db.run(`DELETE FROM active_orders WHERE tableId = ?`, [tableId]);
-    await db.run(`DELETE FROM kitchen_orders WHERE tableId = ?`, [tableId]);
+      // Free table
+      if (clearTableId !== 'quick') {
+        await db.run(`UPDATE tables SET status = 'free' WHERE id = ?`, [clearTableId]);
+      }
+    } else {
+      // Standard single transaction path
+      const { id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId, note } = req.body;
+      await db.run(
+        `INSERT INTO sales_history (id, tableId, tableName, items, subtotal, tax, discount, total, paymentMethod, orderType, waiterId, timestamp, note)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, tableId, tableName, JSON.stringify(items), subtotal, tax, discount, total, paymentMethod, orderType, waiterId, new Date().toISOString(), note || null]
+      );
 
-    // Free table
-    if (tableId !== 'quick') {
-      await db.run(`UPDATE tables SET status = 'free' WHERE id = ?`, [tableId]);
+      // Clear active order and active kitchen orders for this table
+      await db.run(`DELETE FROM active_orders WHERE tableId = ?`, [tableId]);
+      await db.run(`DELETE FROM kitchen_orders WHERE tableId = ?`, [tableId]);
+
+      // Free table
+      if (tableId !== 'quick') {
+        await db.run(`UPDATE tables SET status = 'free' WHERE id = ?`, [tableId]);
+      }
     }
 
     const state = await db.getAppState();

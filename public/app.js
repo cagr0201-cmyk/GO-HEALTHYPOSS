@@ -1536,14 +1536,23 @@ function openCheckoutModal() {
   document.getElementById('received-amount-input').value = Math.ceil(total);
   document.getElementById('change-due-value').textContent = '0.00 ₺';
   
+  // Reset split payment calculator values
+  document.getElementById('split-pay-cash').value = 0;
+  document.getElementById('split-pay-card').value = 0;
+  document.getElementById('split-pay-mealcard').value = 0;
+  document.getElementById('split-pay-other').value = 0;
+  document.getElementById('split-payment-calculator').style.display = 'none';
+
   AppState.activePaymentMethod = 'CASH';
   document.getElementById('method-cash').classList.add('selected');
   document.getElementById('method-card').classList.remove('selected');
   
   const methodMeal = document.getElementById('method-mealcard');
   const methodOther = document.getElementById('method-other');
+  const methodSplit = document.getElementById('method-split');
   if (methodMeal) methodMeal.classList.remove('selected');
   if (methodOther) methodOther.classList.remove('selected');
+  if (methodSplit) methodSplit.classList.remove('selected');
 
   document.getElementById('cash-change-calculator').style.display = 'block';
 
@@ -1558,9 +1567,14 @@ function setPaymentMethod(method) {
   const methodMeal = document.getElementById('method-mealcard');
   const methodOther = document.getElementById('method-other');
   const methodOdenmez = document.getElementById('method-odenmez');
+  const methodSplit = document.getElementById('method-split');
   if (methodMeal) methodMeal.classList.remove('selected');
   if (methodOther) methodOther.classList.remove('selected');
   if (methodOdenmez) methodOdenmez.classList.remove('selected');
+  if (methodSplit) methodSplit.classList.remove('selected');
+
+  // Hide split payment calculator by default
+  document.getElementById('split-payment-calculator').style.display = 'none';
 
   if (method === 'CASH') {
     document.getElementById('method-cash').classList.add('selected');
@@ -1577,6 +1591,41 @@ function setPaymentMethod(method) {
   } else if (method === 'ODENMEZ') {
     if (methodOdenmez) methodOdenmez.classList.add('selected');
     document.getElementById('cash-change-calculator').style.display = 'none';
+  } else if (method === 'SPLIT') {
+    if (methodSplit) methodSplit.classList.add('selected');
+    document.getElementById('cash-change-calculator').style.display = 'none';
+    document.getElementById('split-payment-calculator').style.display = 'block';
+    calculateSplitPaymentSummary();
+  }
+}
+
+function calculateSplitPaymentSummary() {
+  const tableId = AppState.selectedTable ? AppState.selectedTable.id : 'quick';
+  const order = AppState.activeOrders[tableId];
+  if (!order) return;
+  
+  const totalDue = calculateOrderTotal(order);
+  
+  const cash = parseFloat(document.getElementById('split-pay-cash').value) || 0;
+  const card = parseFloat(document.getElementById('split-pay-card').value) || 0;
+  const meal = parseFloat(document.getElementById('split-pay-mealcard').value) || 0;
+  const other = parseFloat(document.getElementById('split-pay-other').value) || 0;
+  
+  const totalPaid = cash + card + meal + other;
+  const remaining = totalDue - totalPaid;
+  
+  document.getElementById('split-total-paid').textContent = `${totalPaid.toFixed(2)} ₺`;
+  
+  const remainingEl = document.getElementById('split-remaining-due');
+  if (Math.abs(remaining) < 0.01) {
+    remainingEl.textContent = 'Ödeme Tamamlandı';
+    remainingEl.style.color = 'var(--status-free)'; // green
+  } else if (remaining > 0) {
+    remainingEl.textContent = `${remaining.toFixed(2)} ₺`;
+    remainingEl.style.color = 'var(--accent-pink)'; // pink
+  } else {
+    remainingEl.textContent = `Fazla Ödeme: ${Math.abs(remaining).toFixed(2)} ₺`;
+    remainingEl.style.color = 'var(--status-busy)'; // orange
   }
 }
 
@@ -1609,27 +1658,103 @@ async function processPaymentAndPrint() {
   const tax = 0;
   const total = subtotalWithDiscount;
   
-  const transaction = {
-    id: 'TX-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-    tableId: tableId,
-    tableName: AppState.selectedTable ? (order.customLabel ? `${AppState.selectedTable.name} - ${order.customLabel}` : AppState.selectedTable.name) : 'Hızlı Satış',
-    items: [...order.items],
-    subtotal: subtotal,
-    tax: tax,
-    discount: order.discount,
-    total: total,
-    paymentMethod: AppState.activePaymentMethod,
-    orderType: order.orderType || 'dine-in',
-    waiterId: order.waiterId,
-    timestamp: new Date().toISOString(),
-    note: order.note || null
-  };
+  let requestBody = {};
+  let unifiedTransaction = null;
+
+  if (AppState.activePaymentMethod === 'SPLIT') {
+    const cash = parseFloat(document.getElementById('split-pay-cash').value) || 0;
+    const card = parseFloat(document.getElementById('split-pay-card').value) || 0;
+    const meal = parseFloat(document.getElementById('split-pay-mealcard').value) || 0;
+    const other = parseFloat(document.getElementById('split-pay-other').value) || 0;
+    
+    const totalPaid = cash + card + meal + other;
+    
+    if (Math.abs(totalPaid - total) > 0.05) {
+      showToast('Girdiğiniz tutarların toplamı hesap tutarına (₺' + total.toFixed(2) + ') eşit olmalıdır!', 'warning');
+      window.checkingOutTables.delete(tableId);
+      return;
+    }
+
+    const payments = [
+      { method: 'CASH', amount: cash },
+      { method: 'CARD', amount: card },
+      { method: 'MEALCARD', amount: meal },
+      { method: 'OTHER', amount: other }
+    ].filter(p => p.amount > 0);
+
+    const payNamesMap = { CASH: 'Nakit', CARD: 'Kredi Kartı', MEALCARD: 'Yemek Kartı', OTHER: 'Diğer' };
+    const methodDesc = payments.map(p => `${p.amount.toFixed(0)} ₺ ${payNamesMap[p.method] || p.method}`).join(' / ');
+
+    unifiedTransaction = {
+      id: 'TX-SPLIT-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      tableId: tableId,
+      tableName: AppState.selectedTable ? (order.customLabel ? `${AppState.selectedTable.name} - ${order.customLabel}` : AppState.selectedTable.name) : 'Hızlı Satış',
+      items: [...order.items],
+      subtotal: subtotal,
+      tax: tax,
+      discount: order.discount,
+      total: total,
+      paymentMethod: `PARÇALI (${methodDesc})`,
+      orderType: order.orderType || 'dine-in',
+      waiterId: order.waiterId,
+      timestamp: new Date().toISOString(),
+      note: order.note || null
+    };
+
+    const transactions = payments.map((p, index) => {
+      const ratio = p.amount / total;
+      return {
+        id: 'TX-SPLIT-' + Math.random().toString(36).substr(2, 6).toUpperCase() + '-' + p.method + '-' + index,
+        tableId: tableId,
+        tableName: AppState.selectedTable ? `${AppState.selectedTable.name} (Parçalı)` : 'Hızlı Satış (Parçalı)',
+        items: order.items.map(item => ({
+          ...item,
+          quantity: item.quantity * ratio
+        })),
+        subtotal: subtotal * ratio,
+        tax: tax * ratio,
+        discount: order.discount,
+        total: p.amount,
+        paymentMethod: p.method,
+        orderType: order.orderType || 'dine-in',
+        waiterId: order.waiterId,
+        timestamp: new Date().toISOString(),
+        note: (order.note || '') + ` (Parçalı Ödeme - ${p.amount.toFixed(2)} ₺)`
+      };
+    });
+
+    requestBody = {
+      isSplit: true,
+      transactions: transactions,
+      tableId: tableId
+    };
+
+  } else {
+    const transaction = {
+      id: 'TX-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      tableId: tableId,
+      tableName: AppState.selectedTable ? (order.customLabel ? `${AppState.selectedTable.name} - ${order.customLabel}` : AppState.selectedTable.name) : 'Hızlı Satış',
+      items: [...order.items],
+      subtotal: subtotal,
+      tax: tax,
+      discount: order.discount,
+      total: total,
+      paymentMethod: AppState.activePaymentMethod,
+      orderType: order.orderType || 'dine-in',
+      waiterId: order.waiterId,
+      timestamp: new Date().toISOString(),
+      note: order.note || null
+    };
+
+    requestBody = transaction;
+    unifiedTransaction = transaction;
+  }
 
   try {
     const response = await fetch('/api/orders/pay', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(transaction)
+      body: JSON.stringify(requestBody)
     });
     
     if (response.ok) {
@@ -1644,7 +1769,7 @@ async function processPaymentAndPrint() {
       const shouldPrint = printReceiptToggle ? printReceiptToggle.checked : true;
       
       if (shouldPrint) {
-        generateReceiptHTML(transaction);
+        generateReceiptHTML(unifiedTransaction);
         document.getElementById('modal-receipt').classList.add('active');
       } else {
         AppState.selectedTable = null;
@@ -1842,7 +1967,7 @@ function localPrint(tx, type = 'receipt') {
     });
 
     const payMap = { CASH: 'NAKİT', CARD: 'KREDİ KARTI', MEALCARD: 'YEMEK KARTI', OTHER: 'DİĞER', ODENMEZ: 'ÖDENMEZ' };
-    const methodText = payMap[tx.paymentMethod] || 'NAKİT';
+    const methodText = payMap[tx.paymentMethod] || tx.paymentMethod || 'NAKİT';
 
     printSection.innerHTML = `
       <div class="receipt-paper" style="width: 80mm; padding: 10px; background:#fff; color:#000; font-family:monospace; margin:0 auto; box-sizing:border-box;">
@@ -2019,7 +2144,7 @@ function generateReceiptHTML(tx) {
   });
 
   const payMap = { CASH: 'NAKİT', CARD: 'KREDİ KARTI', MEALCARD: 'YEMEK KARTI', OTHER: 'DİĞER', ODENMEZ: 'ÖDENMEZ' };
-  const methodText = payMap[tx.paymentMethod] || 'NAKİT';
+  const methodText = payMap[tx.paymentMethod] || tx.paymentMethod || 'NAKİT';
   
   receiptEl.innerHTML = `
     <div class="receipt-header">
