@@ -225,10 +225,23 @@ async function initDatabase() {
     countedMealcard REAL,
     expectedOther REAL,
     countedOther REAL,
+    expectedOdenmez REAL,
+    countedOdenmez REAL,
     totalRevenue REAL,
     totalExpenses REAL,
     notes TEXT
   )`);
+
+  try {
+    await run(`ALTER TABLE daily_closings ADD COLUMN expectedOdenmez REAL`);
+  } catch (err) {
+    // Column might already exist
+  }
+  try {
+    await run(`ALTER TABLE daily_closings ADD COLUMN countedOdenmez REAL`);
+  } catch (err) {
+    // Column might already exist
+  }
 
   await run(`CREATE TABLE IF NOT EXISTS staff (
     id TEXT PRIMARY KEY,

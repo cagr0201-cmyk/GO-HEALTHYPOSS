@@ -151,6 +151,7 @@ async function fetchAppState() {
     AppState.stocks = data.stocks;
     AppState.staffMembers = data.staffMembers;
     AppState.stockStatus = data.stockStatus;
+    AppState.expenses = data.expenses || [];
 
     // Sunucu bağlantı bilgileri ve karekod güncellemesi
     const serverIpText = document.getElementById('server-ip-text');
@@ -1965,6 +1966,10 @@ function localPrint(tx, type = 'receipt') {
         <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
           <span>Diğer (Say. / Bek.):</span>
           <span>${tx.countedOther.toFixed(2)} / ${tx.expectedOther.toFixed(2)} ₺</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom: 2px; color:#000;">
+          <span>Ödenmez (Beklenen):</span>
+          <span>${(tx.expectedOdenmez || 0).toFixed(2)} ₺</span>
         </div>
 
         <div style="border-top:1px dashed #000; margin: 6px 0;"></div>
@@ -4508,6 +4513,7 @@ async function submitDailyClosing(event) {
     expectedCard: AppState.currentExpectedCardSales, countedCard,
     expectedMealcard: AppState.currentExpectedMealSales, countedMealcard: countedMeal,
     expectedOther: AppState.currentExpectedOtherSales, countedOther: countedOther,
+    expectedOdenmez: AppState.currentExpectedOdenmezSales, countedOdenmez: AppState.currentExpectedOdenmezSales,
     totalRevenue, totalExpenses, notes
   };
   
@@ -4736,6 +4742,17 @@ function openEditZReportModal(closingId) {
             </div>
           </div>
 
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <label style="font-size:11px; color:var(--text-secondary); font-weight:600;">Beklenen Ödenmez (₺):</label>
+              <input type="number" id="ez-expected-odenmez" value="${c.expectedOdenmez || 0}" min="0" step="any" style="width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:8px; padding:6px; color:white; font-size:13px;">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <label style="font-size:11px; color:var(--text-secondary); font-weight:600;">Sayılan Ödenmez (₺):</label>
+              <input type="number" id="ez-counted-odenmez" value="${c.countedOdenmez || 0}" min="0" step="any" style="width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:8px; padding:6px; color:white; font-size:13px;">
+            </div>
+          </div>
+
           <div style="display:flex; flex-direction:column; gap:4px;">
             <label style="font-size:11px; color:var(--text-secondary); font-weight:600;">Notlar:</label>
             <textarea id="ez-notes" style="width:100%; height:50px; resize:none; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:8px; padding:6px; color:white; font-size:12px;">${c.notes || ''}</textarea>
@@ -4782,6 +4799,9 @@ async function saveEditZReport(closingId) {
   
   const expectedOther = parseFloat(document.getElementById('ez-expected-other').value) || 0;
   const countedOther = parseFloat(document.getElementById('ez-counted-other').value) || 0;
+
+  const expectedOdenmez = parseFloat(document.getElementById('ez-expected-odenmez').value) || 0;
+  const countedOdenmez = parseFloat(document.getElementById('ez-counted-odenmez').value) || 0;
   
   const notes = document.getElementById('ez-notes').value.trim();
   
@@ -4793,8 +4813,9 @@ async function saveEditZReport(closingId) {
         startingCash,
         expectedCash, countedCash,
         expectedCard, countedCard,
-        expectedMealcard: countedMealcard,
+        expectedMealcard, countedMealcard,
         expectedOther, countedOther,
+        expectedOdenmez, countedOdenmez,
         totalRevenue, totalExpenses,
         notes
       })

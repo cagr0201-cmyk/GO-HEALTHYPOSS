@@ -292,6 +292,7 @@ function buildZReport(tx) {
   text += 'Kredi K.(Say/Bek): ' + tx.countedCard.toFixed(2) + ' / ' + tx.expectedCard.toFixed(2) + ' TL' + LF;
   text += 'Yemek K.(Say/Bek): ' + tx.countedMealcard.toFixed(2) + ' / ' + tx.expectedMealcard.toFixed(2) + ' TL' + LF;
   text += 'Diger   (Say/Bek): ' + tx.countedOther.toFixed(2) + ' / ' + tx.expectedOther.toFixed(2) + ' TL' + LF;
+  text += 'Odenmez (Beklenen):' + (tx.expectedOdenmez || 0).toFixed(2) + ' TL' + LF;
   text += '--------------------------------' + LF;
   
   const cashDiff = tx.countedCash - tx.expectedCash;
@@ -804,16 +805,18 @@ app.post('/api/closings', async (req, res) => {
     id, timestamp, closedBy, startingCash,
     expectedCash, countedCash, expectedCard, countedCard,
     expectedMealcard, countedMealcard, expectedOther, countedOther,
+    expectedOdenmez, countedOdenmez,
     totalRevenue, totalExpenses, notes
   } = req.body;
   try {
     await db.run(
-      `INSERT INTO daily_closings (id, timestamp, closedBy, startingCash, expectedCash, countedCash, expectedCard, countedCard, expectedMealcard, countedMealcard, expectedOther, countedOther, totalRevenue, totalExpenses, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO daily_closings (id, timestamp, closedBy, startingCash, expectedCash, countedCash, expectedCard, countedCard, expectedMealcard, countedMealcard, expectedOther, countedOther, expectedOdenmez, countedOdenmez, totalRevenue, totalExpenses, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, timestamp, closedBy, Number(startingCash),
         Number(expectedCash), Number(countedCash), Number(expectedCard), Number(countedCard),
         Number(expectedMealcard), Number(countedMealcard), Number(expectedOther), Number(countedOther),
+        Number(expectedOdenmez || 0), Number(countedOdenmez || 0),
         Number(totalRevenue), Number(totalExpenses), notes || ''
       ]
     );
@@ -849,6 +852,7 @@ app.patch('/api/closings/:id', async (req, res) => {
     expectedCard, countedCard,
     expectedMealcard, countedMealcard,
     expectedOther, countedOther,
+    expectedOdenmez, countedOdenmez,
     totalRevenue, totalExpenses,
     notes
   } = req.body;
@@ -869,6 +873,8 @@ app.patch('/api/closings/:id', async (req, res) => {
          countedMealcard = ?,
          expectedOther = ?,
          countedOther = ?,
+         expectedOdenmez = ?,
+         countedOdenmez = ?,
          totalRevenue = ?,
          totalExpenses = ?,
          notes = ?
@@ -883,6 +889,8 @@ app.patch('/api/closings/:id', async (req, res) => {
         countedMealcard !== undefined ? Number(countedMealcard) : existing.countedMealcard,
         expectedOther !== undefined ? Number(expectedOther) : existing.expectedOther,
         countedOther !== undefined ? Number(countedOther) : existing.countedOther,
+        expectedOdenmez !== undefined ? Number(expectedOdenmez) : existing.expectedOdenmez,
+        countedOdenmez !== undefined ? Number(countedOdenmez) : existing.countedOdenmez,
         totalRevenue !== undefined ? Number(totalRevenue) : existing.totalRevenue,
         totalExpenses !== undefined ? Number(totalExpenses) : existing.totalExpenses,
         notes !== undefined ? notes : existing.notes,
