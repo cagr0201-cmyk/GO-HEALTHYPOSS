@@ -6,7 +6,7 @@
   <title>Go Healthy POS</title>
   <script>
     // Force clear PWA cache on version change
-    const CACHE_VERSION = 'v21';
+    const CACHE_VERSION = 'v22';
     if (localStorage.getItem('app_cache_version') !== CACHE_VERSION) {
       if ('caches' in window) {
         caches.keys().then(names => {
@@ -23,7 +23,7 @@
     }
   </script>
   <!-- CSS Dosyası -->
-  <link rel="stylesheet" href="styles.css?v=d0718e1b_v20">
+  <link rel="stylesheet" href="styles.css?v=d0718e1b_v22">
   <!-- PWA Manifest & Meta Tags -->
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -223,9 +223,10 @@
                   <span>İndirim:</span>
                   <div style="display: flex; align-items: center; gap: 4px;">
                     <input type="number" id="summary-discount-input" value="0" min="0" style="width: 48px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); border-radius: 4px; padding: 2px; text-align: center; color: white;" onchange="recalculateTotals()">
-                    <select id="discount-type-select" onchange="recalculateTotals()">
+                    <span style="color: var(--text-secondary); font-size: 14px; font-weight: bold; margin-left: 2px; margin-right: 4px;">₺</span>
+                    <select id="discount-type-select" onchange="recalculateTotals()" style="display: none;">
+                      <option value="amount" selected>₺</option>
                       <option value="percent">%</option>
-                      <option value="amount">₺</option>
                     </select>
                   </div>
                 </div>
@@ -1080,8 +1081,8 @@
   <div id="print-receipt-section" style="display: none;"></div>
 
   <!-- UYGULAMA JS DOSYALARI -->
-  <script src="data.js?v=d0718e1b_v20"></script>
-  <script src="app.js?v=d0718e1b_v20"></script>
+  <script src="data.js?v=d0718e1b_v22"></script>
+  <script src="app.js?v=d0718e1b_v22"></script>
 
 </body>
 </html>

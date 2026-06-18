@@ -738,7 +738,7 @@ function renderCart() {
     document.getElementById('summary-tax').textContent = '0.00 ₺';
     document.getElementById('summary-total').textContent = '0.00 ₺';
     const discTypeSel = document.getElementById('discount-type-select');
-    if (discTypeSel) discTypeSel.value = 'percent';
+    if (discTypeSel) discTypeSel.value = 'amount';
     document.getElementById('summary-discount-input').value = 0;
     
     sendKitchenBtn.disabled = true;
@@ -764,12 +764,12 @@ function renderCart() {
 
   const discountTypeSelect = document.getElementById('discount-type-select');
   if (discountTypeSelect) {
-    discountTypeSelect.value = activeOrder.discountType || 'percent';
+    discountTypeSelect.value = activeOrder.discountType || 'amount';
   }
   
   const discountInput = document.getElementById('summary-discount-input');
   if (discountInput) {
-    if ((activeOrder.discountType || 'percent') === 'amount') {
+    if ((activeOrder.discountType || 'amount') === 'amount') {
       const subtotal = activeOrder.items.reduce((sum, item) => sum + (item.ikram ? 0 : item.price * item.quantity), 0);
       discountInput.value = (subtotal * (activeOrder.discount || 0) / 100).toFixed(2);
     } else {
@@ -1041,7 +1041,7 @@ async function recalculateTotals(shouldSave = true) {
   const discountInput = document.getElementById('summary-discount-input');
   const discountTypeSelect = document.getElementById('discount-type-select');
   
-  const discountType = discountTypeSelect ? discountTypeSelect.value : 'percent';
+  const discountType = discountTypeSelect ? discountTypeSelect.value : 'amount';
   const discountInputValue = parseFloat(discountInput.value) || 0;
   
   let discountPercent = 0;
@@ -3617,8 +3617,8 @@ function openPaymentCorrectModal(txId, currentMethod) {
   `).join('');
 
   const subtotal = tx.subtotal || tx.total;
-  const discount = tx.discount || 0;
   const total = tx.total || subtotal;
+  const discountAmount = Math.max(0, subtotal - total);
 
   const modal = document.createElement('div');
   modal.id = 'modal-payment-correct';
@@ -3654,12 +3654,13 @@ function openPaymentCorrectModal(txId, currentMethod) {
         <!-- İSKONTO VE TUTAR DÜZELTME -->
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; border-top:1px solid var(--border-light); padding-top:14px;">
           <div style="display:flex; flex-direction:column; gap:6px;">
-            <label style="font-size:12px; color:var(--text-secondary); font-weight:600;">İskonto Değeri:</label>
-            <div style="display:flex; gap:4px;">
-              <input type="number" id="pc-discount-input" value="${discount}" min="0" style="width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:8px; padding:8px; color:white; font-size:14px; text-align:center;" oninput="recalculateCorrectionTotals('${txId}')">
-              <select id="pc-discount-type-select" style="background:var(--bg-card); border:1px solid var(--border-light); border-radius:8px; padding:8px; color:white; font-size:13px; cursor:pointer;" onchange="recalculateCorrectionTotals('${txId}')">
+            <label style="font-size:12px; color:var(--text-secondary); font-weight:600;">İskonto Değeri (₺):</label>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <input type="number" id="pc-discount-input" value="${discountAmount.toFixed(2)}" min="0" style="width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border-light); border-radius:8px; padding:8px; color:white; font-size:14px; text-align:center;" oninput="recalculateCorrectionTotals('${txId}')">
+              <span style="color:var(--text-secondary); font-size:14px; font-weight:bold; margin-left:2px; margin-right:4px;">₺</span>
+              <select id="pc-discount-type-select" style="display:none;" onchange="recalculateCorrectionTotals('${txId}')">
+                <option value="amount" selected>₺</option>
                 <option value="percent">%</option>
-                <option value="amount">₺</option>
               </select>
             </div>
           </div>
@@ -3718,7 +3719,7 @@ function openPaymentCorrectModal(txId, currentMethod) {
   document.body.appendChild(modal);
   // Seçili method state'ini kaydet
   modal.dataset.selectedMethod = currentMethod;
-  modal.dataset.calculatedDiscount = discount;
+  modal.dataset.calculatedDiscount = tx.discount || 0;
   modal.dataset.calculatedTotal = total;
   lucide.createIcons();
 }
@@ -3742,7 +3743,7 @@ function recalculateCorrectionTotals(txId) {
   const totalInput = document.getElementById('pc-total-input');
   const discountAmountLabel = document.getElementById('pc-discount-amount-label');
   
-  const discountType = discountTypeSelect ? discountTypeSelect.value : 'percent';
+  const discountType = discountTypeSelect ? discountTypeSelect.value : 'amount';
   const discountInputValue = parseFloat(discountInput.value) || 0;
   
   let discountPercent = 0;
@@ -3785,7 +3786,7 @@ function onCorrectionTotalInput(txId) {
   const discountAmount = Math.max(0, subtotal - newTotal);
   const discountPercent = subtotal > 0 ? (discountAmount / subtotal) * 100 : 0;
   
-  const discountType = discountTypeSelect ? discountTypeSelect.value : 'percent';
+  const discountType = discountTypeSelect ? discountTypeSelect.value : 'amount';
   if (discountInput) {
     if (discountType === 'percent') {
       discountInput.value = discountPercent.toFixed(1);
