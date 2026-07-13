@@ -96,7 +96,7 @@ socket.on('sync_state', (data) => {
   if (AppState.activeView === 'tables') { renderTableMap(); renderActiveDeliveries(); }
   else if (AppState.activeView === 'pos') { renderPOSMenu(); renderCart(); }
   else if (AppState.activeView === 'kitchen') renderKitchenMonitor();
-  else if (AppState.activeView === 'settings') renderStockManagementTable();
+  else if (AppState.activeView === 'settings') { renderStockManagementTable(); renderSettingsMenuItemsList(); }
   else if (AppState.activeView === 'dashboard') renderDashboard();
 });
 
@@ -469,6 +469,7 @@ async function switchScreen(viewName) {
     mainTitle.textContent = 'Sistem Yönetim & Reçete Ayarları';
     subTitle.textContent = 'Hammadde stok ve menü reçete yönetim paneli';
     renderStockManagementTable();
+    renderSettingsMenuItemsList();
     loadPrinterSettings();
   }
 
@@ -3087,6 +3088,60 @@ function renderStockManagementTable() {
     listEl.appendChild(row);
   });
 }
+
+// --- DİZİN: MENÜ ÜRÜNLERİ LİSTELEME VE SİLME ---
+function renderSettingsMenuItemsList() {
+  const tbody = document.getElementById('settings-menu-items-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const categoriesMap = {};
+  if (typeof MENU_CATEGORIES !== 'undefined') {
+    MENU_CATEGORIES.forEach(c => {
+      categoriesMap[c.id] = c.name;
+    });
+  }
+
+  AppState.menuItems.forEach(item => {
+    const categoryName = categoriesMap[item.categoryId] || item.categoryId || 'Diğer';
+    const tr = document.createElement('tr');
+    
+    let imgHTML = `<div style="width:35px; height:35px; border-radius:6px; background:#1e293b; display:flex; align-items:center; justify-content:center; color:var(--text-secondary); font-size:10px;">Yok</div>`;
+    if (item.image) {
+      imgHTML = `<img src="${item.image}" style="width:35px; height:35px; border-radius:6px; object-fit:cover;">`;
+    }
+
+    tr.innerHTML = `
+      <td>${imgHTML}</td>
+      <td style="font-weight:600; color:white;">${item.name}</td>
+      <td style="font-weight:700; color:var(--accent-cyan);">${item.price.toFixed(2)} ₺</td>
+      <td><span class="ledger-badge dine-in" style="background: rgba(255,255,255,0.05); color:#fff; border:1px solid var(--border-light); font-size:10px; padding: 2px 6px;">${categoryName}</span></td>
+      <td style="text-align:right;">
+        <button class="expense-delete-btn" onclick="deleteMenuItem('${item.id}')" style="padding:4px 8px; font-size:11px;">
+          <i data-lucide="trash-2" style="width:12px; height:12px; display:inline-block; vertical-align:middle; margin-right:3px;"></i> Sil
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  lucide.createIcons();
+}
+
+async function deleteMenuItem(itemId) {
+  const item = AppState.menuItems.find(i => i.id === itemId);
+  const name = item ? item.name : 'bu ürünü';
+  if (!confirm(`"${name}" ürününü menüden tamamen silmek istediğinizden emin misiniz?`)) return;
+
+  try {
+    const res = await fetch(`/api/settings/item/${itemId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Sunucu hatası.');
+    showToast('Ürün başarıyla silindi.', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('Ürün silinemedi!', 'error');
+  }
+}
+
 
 async function refillAllStocks() {
   try {
