@@ -6,7 +6,7 @@
   <title>Go Healthy POS</title>
   <script>
     // Force clear PWA cache on version change
-    const CACHE_VERSION = 'v26';
+    const CACHE_VERSION = 'v27';
     if (localStorage.getItem('app_cache_version') !== CACHE_VERSION) {
       if ('caches' in window) {
         caches.keys().then(names => {
@@ -23,7 +23,7 @@
     }
   </script>
   <!-- CSS Dosyası -->
-  <link rel="stylesheet" href="styles.css?v=d0718e1b_v26">
+  <link rel="stylesheet" href="styles.css?v=d0718e1b_v27">
   <!-- PWA Manifest & Meta Tags -->
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -797,6 +797,53 @@
 
 
 
+  <!-- MODAL: ÜRÜN DÜZENLEME MODALI -->
+  <div class="modal-overlay" id="modal-edit-menu-item">
+    <div class="modal-content" style="max-width: 480px; width: 90%; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 20px; box-shadow: var(--shadow-main); padding: 20px;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-light); padding-bottom: 12px; margin-bottom: 16px;">
+        <h3 style="font-family: var(--font-brand); color: var(--accent-gold); font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="edit" style="width: 18px; height: 18px;"></i> Ürün Bilgilerini Düzenle
+        </h3>
+        <button class="modal-close" style="background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer;" onclick="closeModal('modal-edit-menu-item')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="settings-edit-item-form" onsubmit="handleSettingsEditItem(event)" style="display: flex; flex-direction: column; gap: 12px;">
+          <input type="hidden" id="edit-item-id">
+          <div>
+            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Ürün Adı</label>
+            <input type="text" id="edit-item-name" required style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-light); border-radius: 8px; padding: 8px; color: white;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Fiyat (₺)</label>
+            <input type="number" id="edit-item-price" required min="1" step="any" style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-light); border-radius: 8px; padding: 8px; color: white;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Kategori</label>
+            <select id="edit-item-category" required style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-light); border-radius: 8px; padding: 8px; color: white;">
+              <!-- Dinamik doldurulacak -->
+            </select>
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Resim Bağlantısı (URL)</label>
+            <input type="url" id="edit-item-image" style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-light); border-radius: 8px; padding: 8px; color: white;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Açıklama</label>
+            <textarea id="edit-item-desc" style="width: 100%; height: 60px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-light); border-radius: 8px; padding: 8px; color: white; resize: none;"></textarea>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="edit-item-popular" style="width: 16px; height: 16px; accent-color: var(--accent-gold); cursor: pointer;">
+            <label for="edit-item-popular" style="font-size: 12px; color: var(--text-secondary); cursor: pointer;">Popüler Ürün</label>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 8px; border-top: 1px solid var(--border-light); padding-top: 12px;">
+            <button type="submit" class="modal-btn modal-btn-confirm" style="flex: 1.2; background: linear-gradient(135deg, var(--accent-cyan), #00b4d8); border: none; color: #0b0f19; border-radius: 8px; padding: 10px; font-weight: 700; cursor: pointer;">Kaydet</button>
+            <button type="button" class="modal-btn modal-btn-cancel" style="flex: 0.8; background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); color: var(--text-secondary); border-radius: 8px; padding: 10px; cursor: pointer;" onclick="closeModal('modal-edit-menu-item')">İptal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-qr-simulator">
     <div class="qr-modal-wrapper">
       <div class="qr-phone-notch"><div class="qr-phone-speaker"></div></div>
@@ -1142,8 +1189,8 @@
   <div id="print-receipt-section" style="display: none;"></div>
 
   <!-- UYGULAMA JS DOSYALARI -->
-  <script src="data.js?v=d0718e1b_v26"></script>
-  <script src="app.js?v=d0718e1b_v26"></script>
+  <script src="data.js?v=d0718e1b_v27"></script>
+  <script src="app.js?v=d0718e1b_v27"></script>
 
 </body>
 </html>

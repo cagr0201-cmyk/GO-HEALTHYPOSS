@@ -787,6 +787,24 @@ app.delete('/api/settings/item/:id', async (req, res) => {
   }
 });
 
+// Edit a menu item
+app.put('/api/settings/item/:id', async (req, res) => {
+  const { id } = req.params;
+  const { categoryId, name, price, description, image, popular, options } = req.body;
+  try {
+    await db.run(
+      `UPDATE menu_items SET categoryId = ?, name = ?, price = ?, description = ?, image = ?, popular = ?, options = ? WHERE id = ?`,
+      [categoryId, name, price, description, image || null, popular ? 1 : 0, JSON.stringify(options || []), id]
+    );
+    const state = await db.getAppState();
+    io.emit('sync_state', state);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 
 // Add custom table map coordinate
 app.post('/api/settings/table/add', async (req, res) => {

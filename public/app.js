@@ -3116,7 +3116,10 @@ function renderSettingsMenuItemsList() {
       <td style="font-weight:600; color:white;">${item.name}</td>
       <td style="font-weight:700; color:var(--accent-cyan);">${item.price.toFixed(2)} ₺</td>
       <td><span class="ledger-badge dine-in" style="background: rgba(255,255,255,0.05); color:#fff; border:1px solid var(--border-light); font-size:10px; padding: 2px 6px;">${categoryName}</span></td>
-      <td style="text-align:right;">
+      <td style="text-align:right; display:flex; gap:6px; justify-content:flex-end; align-items:center; min-height:40px;">
+        <button class="ledger-action-btn" onclick="openEditMenuItemModal('${item.id}')" style="padding:4px 8px; font-size:11px; margin-top:0;">
+          <i data-lucide="edit-3" style="width:12px; height:12px; display:inline-block; vertical-align:middle; margin-right:3px;"></i> Düzenle
+        </button>
         <button class="expense-delete-btn" onclick="deleteMenuItem('${item.id}')" style="padding:4px 8px; font-size:11px;">
           <i data-lucide="trash-2" style="width:12px; height:12px; display:inline-block; vertical-align:middle; margin-right:3px;"></i> Sil
         </button>
@@ -3141,6 +3144,76 @@ async function deleteMenuItem(itemId) {
     showToast('Ürün silinemedi!', 'error');
   }
 }
+
+function openEditMenuItemModal(itemId) {
+  const item = AppState.menuItems.find(i => i.id === itemId);
+  if (!item) return;
+
+  document.getElementById('edit-item-id').value = item.id;
+  document.getElementById('edit-item-name').value = item.name;
+  document.getElementById('edit-item-price').value = item.price;
+  document.getElementById('edit-item-image').value = item.image || '';
+  document.getElementById('edit-item-desc').value = item.description || '';
+  document.getElementById('edit-item-popular').checked = !!item.popular;
+
+  const catSelect = document.getElementById('edit-item-category');
+  catSelect.innerHTML = '';
+  if (typeof MENU_CATEGORIES !== 'undefined') {
+    MENU_CATEGORIES.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat.id;
+      opt.textContent = cat.name;
+      if (cat.id === item.categoryId) {
+        opt.selected = true;
+      }
+      catSelect.appendChild(opt);
+    });
+  }
+
+  document.getElementById('modal-edit-menu-item').classList.add('active');
+  lucide.createIcons();
+}
+
+async function handleSettingsEditItem(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-item-id').value;
+  const name = document.getElementById('edit-item-name').value.trim();
+  const price = parseFloat(document.getElementById('edit-item-price').value);
+  const categoryId = document.getElementById('edit-item-category').value;
+  const image = document.getElementById('edit-item-image').value.trim();
+  const description = document.getElementById('edit-item-desc').value.trim();
+  const popular = document.getElementById('edit-item-popular').checked;
+
+  const updatedItem = {
+    categoryId,
+    name,
+    price,
+    description,
+    image: image || null,
+    popular,
+    options: []
+  };
+
+  const existing = AppState.menuItems.find(i => i.id === id);
+  if (existing && existing.options) {
+    updatedItem.options = existing.options;
+  }
+
+  try {
+    const res = await fetch(`/api/settings/item/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedItem)
+    });
+    if (!res.ok) throw new Error('Sunucu hatası.');
+    showToast(`${name} başarıyla güncellendi.`, 'success');
+    closeModal('modal-edit-menu-item');
+  } catch (err) {
+    console.error(err);
+    showToast('Ürün güncellenemedi!', 'error');
+  }
+}
+
 
 
 async function refillAllStocks() {
